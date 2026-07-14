@@ -1,0 +1,1 @@
+# Painel-Clim-tico-Tripoloni
