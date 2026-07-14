@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel Climático — MT & PR</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#f0f2f5;
+  --surface:#ffffff;
+  --surface2:#e4e8ee;
+  --surface3:#d5dbe6;
+  --border:rgba(30,50,90,0.10);
+  --border2:rgba(30,50,90,0.18);
+  --text:#0d1b2e;
+  --text2:#4a5a72;
+  --text3:#8a96a8;
+  --navy:#0d2b54;
+  --navy2:#1a4278;
+  --navy3:#2357a0;
+  --blue:#2d6cc0;
+  --blue-bg:#e6edf8;
+  --gray:#6b7a90;
+  --gray-bg:#edf0f4;
+  --red:#b83030;--red-bg:#faeaea;
+  --amber:#9a5500;--amber-bg:#fef3e2;
+  --radius:12px;--radius-sm:8px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* ── HEADER ── */
+.app-header{
+  background:var(--navy);color:#fff;
+  padding:0 20px;position:sticky;top:0;z-index:200;
+  display:flex;align-items:stretch;justify-content:space-between;gap:0;
+  min-height:60px;
+}
+.header-left{display:flex;flex-direction:column;justify-content:center;gap:2px;padding:14px 0;}
+.header-city{font-size:18px;font-weight:600;letter-spacing:-0.02em;line-height:1;color:#fff;}
+.header-sub{font-size:11px;opacity:.55;margin-top:3px;font-family:'DM Mono',monospace;letter-spacing:.03em;}
+.header-right{display:flex;align-items:center;gap:16px;padding:0 0 0 20px;}
+.live-pill{display:flex;align-items:center;gap:6px;font-size:11px;font-family:'DM Mono',monospace;background:rgba(255,255,255,0.1);padding:5px 12px;border-radius:20px;white-space:nowrap;border:1px solid rgba(255,255,255,0.15);}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#60d890;flex-shrink:0;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.hdate{font-size:11px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.5);white-space:nowrap;}
+
+/* ── TABS ── */
+.city-scroll{overflow-x:auto;padding:12px 14px 0;-webkit-overflow-scrolling:touch;background:var(--navy);border-bottom:1px solid rgba(255,255,255,0.08);}
+.city-tabs{display:flex;gap:6px;min-width:max-content;padding-bottom:12px;}
+.city-tab{
+  display:flex;flex-direction:column;align-items:flex-start;
+  padding:8px 13px;border-radius:var(--radius-sm);
+  border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);
+  cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;color:rgba(255,255,255,0.7);
+}
+.city-tab:hover{border-color:rgba(255,255,255,0.35);background:rgba(255,255,255,0.12);color:#fff;}
+.city-tab.active{background:#fff;border-color:#fff;color:var(--navy);}
+.city-tab .cn{font-size:13px;font-weight:600;}
+.city-tab .cs{font-size:10px;opacity:.6;margin-top:1px;font-family:'DM Mono',monospace;}
+
+/* ── MAIN ── */
+.main{max-width:960px;margin:0 auto;padding:16px 14px 48px;}
+.section-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin:18px 0 10px;display:flex;align-items:center;gap:8px;}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* ── STAT GRID ── */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:9px;margin-bottom:4px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;}
+.stat-card .sl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+.stat-card .sv{font-size:20px;font-weight:600;line-height:1;color:var(--text);}
+.stat-card .su{font-size:11px;color:var(--text2);font-weight:400;}
+.stat-card.live-card{border-color:var(--navy3);background:var(--blue-bg);}
+.stat-card.live-card .sv{color:var(--navy2);}
+.stat-card.warn{border-color:#c0852a;background:var(--amber-bg);}
+.stat-card.warn .sv{color:var(--amber);}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:15px;}
+.card-title{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;}
+.chart-wrap{position:relative;width:100%;height:180px;}
+.chart-wrap-md{position:relative;width:100%;height:220px;}
+.chart-wrap-lg{position:relative;width:100%;height:240px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:600px){.two-col{grid-template-columns:1fr;}}
+
+/* ── LEGEND ── */
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;}
+.legend span{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);}
+.ldot{width:24px;height:3px;border-radius:2px;flex-shrink:0;}
+.ldot-sq{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+
+/* ── DATA TABLE ── */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+table.dtbl{width:100%;border-collapse:collapse;font-size:11.5px;min-width:560px;}
+table.dtbl th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);font-weight:500;padding:5px 7px;text-align:center;border-bottom:1px solid var(--border2);}
+table.dtbl th:first-child{text-align:left;}
+table.dtbl td{padding:6px 7px;text-align:center;color:var(--text);border-bottom:1px solid var(--border);}
+table.dtbl td:first-child{text-align:left;color:var(--text2);font-weight:500;white-space:nowrap;font-size:11px;}
+table.dtbl tr:last-child td{border-bottom:none;}
+table.dtbl .hi{background:#faeaea;color:#8a1c1c;font-weight:600;}
+table.dtbl .lo{background:var(--blue-bg);color:var(--navy2);font-weight:600;}
+table.dtbl .fcast{color:var(--gray);font-style:italic;}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:4px 10px;border-radius:20px;font-weight:500;margin:3px;}
+.bwet{background:var(--blue-bg);color:var(--navy2);}
+.bdry{background:var(--amber-bg);color:var(--amber);}
+.btype{background:var(--surface2);color:var(--text2);}
+.bblue{background:var(--blue-bg);color:var(--blue);}
+.bred{background:var(--red-bg);color:var(--red);}
+
+/* ── RAIN SCALE ── */
+.rain-scale{display:grid;grid-template-columns:repeat(auto-fit,minmax(85px,1fr));gap:8px;margin-top:4px;}
+.rain-bucket{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px;text-align:center;border:1px solid var(--border);}
+.rain-bucket .rb-label{font-size:10px;color:var(--text3);margin-bottom:4px;font-family:'DM Mono',monospace;}
+.rain-bucket .rb-val{font-size:22px;font-weight:600;}
+.rain-bucket .rb-sub{font-size:10px;color:var(--text3);margin-top:2px;}
+
+/* ── COMPARE ── */
+.cmp-legend{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px;}
+.cmp-legend span{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);padding:3px 8px;border-radius:4px;border:1px solid var(--border);cursor:pointer;}
+.cmp-legend span.hl{background:var(--surface2);font-weight:600;border-color:var(--border2);}
+.cmp-legend .ldot2{width:20px;height:3px;border-radius:2px;flex-shrink:0;}
+
+/* ── LOADING / ERROR ── */
+.loading-box{text-align:center;padding:40px 20px;color:var(--text2);}
+.loading-box .spinner{width:28px;height:28px;border:3px solid var(--border2);border-top-color:var(--navy);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-box{background:var(--red-bg);border:1px solid rgba(184,48,48,.2);border-radius:var(--radius-sm);padding:12px 16px;font-size:13px;color:var(--red);margin-bottom:12px;}
+.tag-updated{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:6px;}
+
+/* ── FORECAST BAND ── */
+.fcast-note{font-size:10px;color:var(--gray);font-family:'DM Mono',monospace;margin-top:6px;display:flex;align-items:center;gap:6px;}
+.fcast-swatch{width:14px;height:3px;background:rgba(100,130,170,0.5);border-radius:2px;display:inline-block;}
+
+.diff{font-size:11px;font-weight:500;padding:1px 6px;border-radius:4px;margin-left:6px;}
+.diff.pos{background:#faeaea;color:#8a1c1c;}
+.diff.neg{background:var(--blue-bg);color:var(--navy2);}
+
+
+/* ── FORECAST 15 DIAS ── */
+.fc15-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:6px;margin-bottom:4px;}
+.fc15-day{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 4px;text-align:center;position:relative;overflow:hidden;}
+.fc15-day.rain-day{border-color:var(--navy3);background:var(--blue-bg);}
+.fc15-day.heavy-day{border-color:var(--navy);background:#d0dff5;}
+.fc15-date{font-size:9px;font-family:'DM Mono',monospace;color:var(--text3);margin-bottom:3px;}
+.fc15-prob{font-size:13px;font-weight:600;color:var(--navy);line-height:1;}
+.fc15-mm{font-size:10px;color:var(--text2);margin-top:2px;}
+.fc15-bar{position:absolute;bottom:0;left:0;height:3px;background:var(--navy3);transition:width .3s;}
+.fc15-icon{font-size:14px;line-height:1;margin-bottom:2px;}
+.model-pill{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 8px;border-radius:10px;font-family:'DM Mono',monospace;margin:2px;}
+.model-ecmwf{background:#e8edf8;color:#1a4278;}
+.model-gfs{background:#e8f5ee;color:#1a5c3a;}
+.model-icon{background:#fef3e2;color:#9a5500;}
+.consensus-bar-wrap{height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;margin:4px 0;}
+.consensus-bar{height:100%;border-radius:4px;background:var(--navy2);transition:width .4s;}
+.fc-stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:12px;}
+.fc-stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;}
+.fc-stat .fsl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
+.fc-stat .fsv{font-size:18px;font-weight:600;color:var(--navy);}
+.fc-stat .fsu{font-size:10px;color:var(--text2);}
+.alert-box{border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.alert-red{background:#faeaea;border:1px solid rgba(184,48,48,.25);color:#8a1c1c;}
+.alert-amber{background:var(--amber-bg);border:1px solid rgba(154,85,0,.2);color:var(--amber);}
+.alert-green{background:#e8f5ee;border:1px solid rgba(26,92,58,.2);color:#1a5c3a;}
+.chart-wrap-fc{position:relative;width:100%;height:200px;}
+table.fc-tbl{width:100%;border-collapse:collapse;font-size:11px;min-width:600px;}
+table.fc-tbl th{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--text3);font-weight:500;padding:5px 6px;text-align:center;border-bottom:1px solid var(--border2);background:var(--surface2);}
+table.fc-tbl th:first-child{text-align:left;}
+table.fc-tbl td{padding:5px 6px;text-align:center;color:var(--text);border-bottom:1px solid var(--border);}
+table.fc-tbl td:first-child{text-align:left;font-weight:500;font-family:'DM Mono',monospace;font-size:10px;white-space:nowrap;}
+table.fc-tbl tr:last-child td{border-bottom:none;}
+table.fc-tbl .cell-hi{background:#faeaea;color:#8a1c1c;font-weight:600;}
+table.fc-tbl .cell-md{background:var(--blue-bg);color:var(--navy2);font-weight:600;}
+table.fc-tbl .cell-lo{color:var(--text3);}
+
+footer{text-align:center;font-size:11px;color:var(--text3);padding:16px 0 24px;}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="header-left">
+    <div class="header-city" id="headerCity">Sinop</div>
+    <div class="header-sub" id="headerSub">MT · 378m · Painel Climático Histórico + Atual</div>
+  </div>
+  <div class="header-right">
+    <div class="hdate" id="hdate"></div>
+    <div class="live-pill"><span class="live-dot"></span>ao vivo</div>
+  </div>
+</div>
+
+<div class="city-scroll"><div class="city-tabs" id="cityTabs"></div></div>
+
+<div class="main">
+
+  <div class="section-label">🌧 previsão 15 dias — análise multi-modelo</div>
+  <div id="fc15Area"><div class="loading-box"><div class="spinner"></div><p>Carregando modelos ECMWF, GFS e ICON…</p></div></div>
+
+  <div class="section-label">dados atuais — ano de <span id="yrLabel">2026</span></div>
+  <div id="liveArea"><div class="loading-box"><div class="spinner"></div><p>Buscando dados em tempo real…</p></div></div>
+
+  <div class="section-label">comparativo — atual vs histórico (mensal)</div>
+  <div id="cmpArea"><div class="loading-box"><div class="spinner"></div><p>Aguardando dados…</p></div></div>
+
+  <div class="section-label">análise de chuvas — ano atual + previsão</div>
+  <div id="rainArea"><div class="loading-box"><div class="spinner"></div><p>Aguardando dados…</p></div></div>
+
+  <div class="section-label">normais climatológicas históricas (30 anos)</div>
+  <div class="two-col" style="margin-bottom:12px;">
+    <div class="card">
+      <div class="card-title">Temperatura média mensal</div>
+      <div class="legend">
+        <span><span class="ldot" style="background:#b83030;"></span>Máx. média</span>
+        <span><span class="ldot" style="background:#2d6cc0;"></span>Mín. média</span>
+      </div>
+      <div class="chart-wrap"><canvas id="tempChart" role="img" aria-label="Temperatura máxima e mínima média mensal histórica"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Precipitação média mensal (mm)</div>
+      <div class="legend"><span><span class="ldot-sq" style="background:#2d6cc0;width:10px;height:10px;border-radius:2px;"></span>Chuva histórica</span></div>
+      <div class="chart-wrap"><canvas id="rainChart" role="img" aria-label="Precipitação média mensal histórica"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px;">
+    <div class="card-title" id="tableTitle">Tabela mensal histórica</div>
+    <div class="tbl-wrap"><table class="dtbl" id="dataTable"></table></div>
+    <div style="margin-top:12px;" id="climateMeta"></div>
+  </div>
+
+  <div class="section-label">comparativo entre cidades — temperatura média histórica</div>
+  <div class="card">
+    <div class="card-title">Temperatura média mensal (°C) — todas as cidades</div>
+    <div class="cmp-legend" id="compareLegend"></div>
+    <div class="chart-wrap-lg"><canvas id="compareChart" role="img" aria-label="Comparativo de temperatura média entre cidades"></canvas></div>
+  </div>
+
+</div>
+
+<footer>Dados históricos: Normais Climatológicas 30 anos (INMET/Meteoblue) · Dados atuais + previsão: Open-Meteo API (CC BY 4.0) · Atualizado diariamente</footer>
+
+<script>
+const MONTHS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+// azul escuro, cinzas, brancos, azuis médios — paleta navy/gray/white
+const COLORS = ['#0d2b54','#2d6cc0','#6b7a90','#1a4278','#4a7ab0','#8a96a8','#2357a0','#3d5a80','#a03d20'];
+
+const cities = [
+  { name:'Sinop',    state:'MT', lat:-11.86, lon:-55.50, alt:378,  tz:'America/Cuiaba',
+    climate:'Aw — Tropical savana', season_wet:'Out – Abr', season_dry:'Mai – Set',
+    tmax:[31,31,31,32,32,32,33,35,35,34,32,31],
+    tmin:[21,21,21,20,18,16,16,17,19,20,21,21],
+    rain:[240,210,220,140,60,20,10,20,80,150,200,230] },
+  { name:'Sorriso',  state:'MT', lat:-12.54, lon:-55.72, alt:360,  tz:'America/Cuiaba',
+    climate:'Aw — Tropical savana', season_wet:'Out – Abr', season_dry:'Mai – Set',
+    tmax:[31,31,31,32,33,33,33,35,35,33,32,31],
+    tmin:[21,21,21,20,18,15,15,17,19,20,21,21],
+    rain:[250,220,230,140,55,15,10,20,75,160,200,240] },
+  { name:'Assis',    state:'PR', lat:-23.47, lon:-51.01, alt:550,  tz:'America/Sao_Paulo',
+    climate:'Cfa — Subtropical úmido', season_wet:'Nov – Mar', season_dry:'Jun – Ago',
+    tmax:[30,30,28,25,21,19,19,22,25,27,29,30],
+    tmin:[18,18,16,13,9,7,7,9,12,14,16,18],
+    rain:[170,130,130,120,110,90,80,90,120,150,160,170] },
+  { name:'Irati',    state:'PR', lat:-25.47, lon:-50.65, alt:812,  tz:'America/Sao_Paulo',
+    climate:'Cfb — Subtropical oceânico', season_wet:'Out – Jan', season_dry:'Jun – Ago',
+    tmax:[28,28,25,22,17,15,15,17,20,23,26,28],
+    tmin:[16,16,14,11,7,4,4,6,9,12,14,16],
+    rain:[145,120,115,90,95,85,80,85,100,120,130,145] },
+  { name:'Pitanga',  state:'PR', lat:-24.76, lon:-51.76, alt:910,  tz:'America/Sao_Paulo',
+    climate:'Cfb — Subtropical oceânico', season_wet:'Nov – Fev', season_dry:'Jun – Ago',
+    tmax:[28,28,25,22,18,15,15,17,20,23,26,27],
+    tmin:[16,16,13,10,6,4,3,5,8,11,14,15],
+    rain:[150,130,120,100,100,90,85,90,110,130,140,160] },
+  { name:'Palmeira', state:'PR', lat:-25.43, lon:-50.00, alt:894,  tz:'America/Sao_Paulo',
+    climate:'Cfb — Subtropical oceânico', season_wet:'Nov – Fev', season_dry:'Jun – Ago',
+    tmax:[27,27,25,21,17,14,14,16,19,22,25,27],
+    tmin:[15,15,13,10,6,3,3,5,8,11,13,15],
+    rain:[140,120,110,90,90,80,75,80,100,120,130,145] },
+  { name:'Maringá',  state:'PR', lat:-23.42, lon:-51.93, alt:542,  tz:'America/Sao_Paulo',
+    climate:'Cfa — Subtropical úmido', season_wet:'Nov – Mar', season_dry:'Jun – Ago',
+    tmax:[31,31,29,26,22,20,20,23,26,28,30,31],
+    tmin:[19,19,17,14,10,8,8,10,13,15,17,19],
+    rain:[217,170,140,110,90,65,65,75,110,155,170,195] },
+  { name:'Ivaiporã', state:'PR', lat:-24.25, lon:-51.68, alt:680,  tz:'America/Sao_Paulo',
+    climate:'Cfa/Cfb — Subtropical', season_wet:'Nov – Mar', season_dry:'Jun – Ago',
+    tmax:[30,30,27,24,19,17,17,20,23,26,28,30],
+    tmin:[18,18,16,12,8,5,5,7,10,13,16,18],
+    rain:[180,150,135,110,100,80,75,85,110,140,155,175] },
+  { name:'Miranda do Norte', state:'MA', lat:-3.68, lon:-44.56, alt:47,  tz:'America/Fortaleza',
+    climate:'Aw — Tropical savana', season_wet:'Jan – Jun', season_dry:'Jul – Dez',
+    tmax:[32,31,31,31,31,32,33,34,35,35,34,33],
+    tmin:[23,23,23,23,23,22,22,22,22,23,23,23],
+    rain:[270,300,340,280,200,80,30,15,20,40,80,160] }
+];
+
+let activeIdx = 0;
+let tempInst, rainInst, compareInst, cmpTempInst, cmpRainInst, rainScaleInst;
+let liveCache = {};
+let forecastCache = {};
+
+function tmean(c){ return c.tmax.map((v,i)=>Math.round((v+c.tmin[i])/2)); }
+function today(){ return new Date().toISOString().slice(0,10); }
+function fmt(n,dec=1){ return n==null?'—':Number(n).toFixed(dec); }
+
+// ── DATE LABEL ──
+function updateDateLabel(){
+  const d = new Date();
+  const opts = {weekday:'short',day:'2-digit',month:'short',year:'numeric'};
+  document.getElementById('hdate').textContent = d.toLocaleDateString('pt-BR',opts);
+  document.getElementById('yrLabel').textContent = d.getFullYear();
+}
+updateDateLabel();
+
+// ── UPDATE HEADER ──
+function updateHeader(city){
+  document.getElementById('headerCity').textContent = city.name;
+  document.getElementById('headerSub').textContent = `${city.state} · ${city.alt}m · ${city.climate}`;
+  document.title = `Painel Climático — ${city.name}`;
+}
+
+// ── FETCH ARCHIVE (Jan–today) ──
+async function fetchLiveData(city){
+  const key = city.name;
+  if(liveCache[key]) return liveCache[key];
+  const yr = new Date().getFullYear();
+  const url = `https://archive-api.open-meteo.com/v1/archive?`+
+    `latitude=${city.lat}&longitude=${city.lon}`+
+    `&start_date=${yr}-01-01&end_date=${today()}`+
+    `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum`+
+    `&timezone=${encodeURIComponent(city.tz)}`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('Archive HTTP '+res.status);
+  const data = await res.json();
+  liveCache[key] = data.daily;
+  return data.daily;
+}
+
+// ── FETCH FORECAST (today + 16 days) ──
+async function fetchForecastData(city){
+  const key = city.name;
+  if(forecastCache[key]) return forecastCache[key];
+  const url = `https://api.open-meteo.com/v1/forecast?`+
+    `latitude=${city.lat}&longitude=${city.lon}`+
+    `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_mean`+
+    `&forecast_days=16`+
+    `&timezone=${encodeURIComponent(city.tz)}`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('Forecast HTTP '+res.status);
+  const data = await res.json();
+  forecastCache[key] = data.daily;
+  return data.daily;
+}
+
+// ── DAILY → MONTHLY (with isForecast flag) ──
+function dailyToMonthly(daily, isForecast=false){
+  const dates = daily.time;
+  const tmax  = daily.temperature_2m_max;
+  const tmin  = daily.temperature_2m_min;
+  const prec  = daily.precipitation_sum;
+
+  const byMonth = Array.from({length:12}, ()=>({
+    tmaxs:[],tmins:[],precs:[],days:0,rainDays:0,dryDays:0,
+    buckets:{0:0,1:0,2:0,3:0,4:0,5:0},isForecast
+  }));
+
+  dates.forEach((d,i)=>{
+    const m = parseInt(d.slice(5,7))-1;
+    const mm = byMonth[m];
+    mm.days++;
+    if(tmax[i]!=null) mm.tmaxs.push(tmax[i]);
+    if(tmin[i]!=null) mm.tmins.push(tmin[i]);
+    const p = prec[i]??0;
+    mm.precs.push(p);
+    if(p < 1)       { mm.dryDays++; mm.buckets[0]++; }
+    else if(p < 20) mm.buckets[1]++;
+    else if(p < 40) mm.buckets[2]++;
+    else if(p < 60) mm.buckets[3]++;
+    else if(p < 80) mm.buckets[4]++;
+    else            mm.buckets[5]++;
+  });
+
+  byMonth.forEach(mm=>{
+    mm.tmax = mm.tmaxs.length ? +(mm.tmaxs.reduce((a,b)=>a+b,0)/mm.tmaxs.length).toFixed(1) : null;
+    mm.tmin = mm.tmins.length ? +(mm.tmins.reduce((a,b)=>a+b,0)/mm.tmins.length).toFixed(1) : null;
+    mm.tmean = (mm.tmax!=null&&mm.tmin!=null) ? +((mm.tmax+mm.tmin)/2).toFixed(1) : null;
+    mm.precTotal = +mm.precs.reduce((a,b)=>a+b,0).toFixed(1);
+    mm.rainDays = mm.precs.filter(p=>p>=1).length;
+  });
+  return byMonth;
+}
+
+// merge archive months + forecast months (forecast fills empty months or adds forecast flag)
+function mergeMonthly(archive, forecast){
+  const merged = archive.map((m,i)=>{
+    const fc = forecast[i];
+    if(m.days > 0) return {...m, isForecast:false};
+    // month not yet in archive → use forecast
+    if(fc && fc.days > 0) return {...fc, isForecast:true};
+    return m;
+  });
+  // also top-up current partial month with forecast for remaining days if needed
+  return merged;
+}
+
+function allMonthsWithData(monthly){
+  return monthly.map((m,i)=>({idx:i,m})).filter(x=>x.m.days>0);
+}
+
+// ── RENDER TABS ──
+function renderTabs(){
+  document.getElementById('cityTabs').innerHTML = cities.map((c,i)=>
+    `<button class="city-tab${i===activeIdx?' active':''}" onclick="selectCity(${i})">
+      <span class="cn">${c.name}</span>
+      <span class="cs">${c.state} · ${c.alt}m</span>
+    </button>`
+  ).join('');
+}
+
+// ── LIVE AREA ──
+function renderLiveArea(city, monthly){
+  const real = allMonthsWithData(monthly).filter(x=>!x.m.isForecast);
+  const all  = allMonthsWithData(monthly);
+  if(!real.length){ document.getElementById('liveArea').innerHTML='<div class="error-box">Sem dados reais disponíveis.</div>'; return; }
+  const lastReal = real[real.length-1];
+  const lm = lastReal.m;
+  const totalRain = real.reduce((a,x)=>a+x.m.precTotal,0);
+  const totalRainDays = real.reduce((a,x)=>a+x.m.rainDays,0);
+  const totalDryDays  = real.reduce((a,x)=>a+x.m.dryDays,0);
+  const yr = new Date().getFullYear();
+  document.getElementById('liveArea').innerHTML = `
+    <div class="stat-grid" style="margin-bottom:12px;">
+      <div class="stat-card live-card"><div class="sl">Último mês real</div><div class="sv" style="font-size:15px;">${MONTHS[lastReal.idx]}</div></div>
+      <div class="stat-card live-card"><div class="sl">Tmáx (último mês)</div><div class="sv">${fmt(lm.tmax)}<span class="su"> °C</span></div></div>
+      <div class="stat-card live-card"><div class="sl">Tmín (último mês)</div><div class="sv">${fmt(lm.tmin)}<span class="su"> °C</span></div></div>
+      <div class="stat-card live-card"><div class="sl">Chuva acumulada ${yr}</div><div class="sv">${fmt(totalRain,0)}<span class="su"> mm</span></div></div>
+      <div class="stat-card"><div class="sl">Dias de chuva ${yr}</div><div class="sv">${totalRainDays}<span class="su"> dias</span></div></div>
+      <div class="stat-card warn"><div class="sl">Dias secos ${yr}</div><div class="sv">${totalDryDays}<span class="su"> dias</span></div></div>
+    </div>
+    <div class="tag-updated">Dados reais até ${MONTHS[lastReal.idx]}/${yr} · Open-Meteo Archive API · Previsão: +16 dias</div>
+  `;
+}
+
+// ── COMPARATIVO ──
+function renderCmpArea(city, monthly){
+  const real = allMonthsWithData(monthly).filter(x=>!x.m.isForecast);
+  if(!real.length){ document.getElementById('cmpArea').innerHTML='<div class="error-box">Sem dados para comparativo.</div>'; return; }
+  const labels    = real.map(x=>MONTHS[x.idx]);
+  const liveTemps = real.map(x=>x.m.tmean);
+  const histTemps = real.map(x=>Math.round((city.tmax[x.idx]+city.tmin[x.idx])/2));
+  const liveRain  = real.map(x=>x.m.precTotal);
+  const histRain  = real.map(x=>city.rain[x.idx]);
+  const yr = new Date().getFullYear();
+
+  document.getElementById('cmpArea').innerHTML = `
+    <div class="two-col" style="margin-bottom:12px;">
+      <div class="card">
+        <div class="card-title">Temperatura média — atual vs histórico (°C)</div>
+        <div class="legend">
+          <span><span class="ldot" style="background:#0d2b54;"></span>Atual ${yr}</span>
+          <span><span class="ldot" style="background:#aaa;"></span>Histórico 30a</span>
+        </div>
+        <div class="chart-wrap-md"><canvas id="cmpTempChart" role="img" aria-label="Comparativo temperatura atual vs histórico"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Precipitação — atual vs histórico (mm)</div>
+        <div class="legend">
+          <span><span class="ldot-sq" style="background:#2d6cc0;width:10px;height:10px;border-radius:2px;"></span>Atual</span>
+          <span><span class="ldot-sq" style="background:#c8d5e8;width:10px;height:10px;border-radius:2px;"></span>Histórico</span>
+        </div>
+        <div class="chart-wrap-md"><canvas id="cmpRainChart" role="img" aria-label="Comparativo precipitação atual vs histórico"></canvas></div>
+      </div>
+    </div>
+  `;
+
+
+
+  if(cmpTempInst) cmpTempInst.destroy();
+  cmpTempInst = new Chart(document.getElementById('cmpTempChart').getContext('2d'),{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'Atual',data:liveTemps,borderColor:'#0d2b54',borderWidth:2.5,pointRadius:4,tension:.35,fill:false,pointBackgroundColor:'#0d2b54'},
+      {label:'Histórico',data:histTemps,borderColor:'#aaa',borderWidth:1.5,pointRadius:3,tension:.35,fill:false,borderDash:[5,3],pointBackgroundColor:'#aaa'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false}},
+      scales:{x:{ticks:{font:{size:10},autoSkip:false,maxRotation:0},grid:{color:'rgba(0,0,0,0.05)'}},
+              y:{ticks:{font:{size:10},callback:v=>v+'°C'},grid:{color:'rgba(0,0,0,0.05)'}}}}
+  });
+  if(cmpRainInst) cmpRainInst.destroy();
+  cmpRainInst = new Chart(document.getElementById('cmpRainChart').getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Atual',data:liveRain.map(v=>Math.round(v)),backgroundColor:'rgba(45,108,192,0.75)',borderColor:'#2d6cc0',borderWidth:1},
+      {label:'Histórico',data:histRain,backgroundColor:'rgba(45,108,192,0.18)',borderColor:'rgba(45,108,192,0.35)',borderWidth:1}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y+' mm'}}},
+      scales:{x:{ticks:{font:{size:10},autoSkip:false,maxRotation:0},grid:{color:'rgba(0,0,0,0.05)'}},
+              y:{ticks:{font:{size:10},callback:v=>v+'mm'},grid:{color:'rgba(0,0,0,0.05)'}}}}
+  });
+}
+
+// ── RAIN SCALE — empilhado por escala, 12 meses, realizado (sólido) + previsto (translúcido) ──
+function renderRainArea(city, monthly, forecastMonthly){
+  const yr = new Date().getFullYear();
+  const daysInMonth = [31,28,29,31,30,31,30,31,31,30,31,30];
+
+  function clamp(v){ return Math.max(0, Math.round(v)); }
+
+  function getPrevisto(mIdx){
+    const fc = forecastMonthly[mIdx];
+    if(fc && fc.days > 0){
+      // usar forecast — garantir sem negativos
+      const bk = {};
+      Object.keys(fc.buckets).forEach(k=>{ bk[k]=Math.max(0,fc.buckets[k]||0); });
+      return { buckets:bk, precTotal:fc.precTotal,
+               rainDays:fc.rainDays, dryDays:fc.dryDays, source:'forecast' };
+    }
+    // normal histórica — distribuição estimada, nunca negativa
+    const h = city.rain[mIdx];
+    const d = daysInMonth[mIdx];
+    const rd = clamp(h / 5);
+    const b1 = clamp(rd*0.50);
+    const b2 = clamp(rd*0.30);
+    const b3 = clamp(rd*0.12);
+    const b4 = clamp(rd*0.05);
+    const b5 = clamp(rd*0.03);
+    const b0 = Math.max(0, d - b1 - b2 - b3 - b4 - b5);
+    return {
+      buckets:{0:b0,1:b1,2:b2,3:b3,4:b4,5:b5},
+      precTotal:h, rainDays:rd, dryDays:b0, source:'historico'
+    };
+  }
+
+  // acumulado real
+  const totals={0:0,1:0,2:0,3:0,4:0,5:0};
+  for(let i=0;i<12;i++){
+    const m = monthly[i];
+    if(m && m.days>0 && !m.isForecast)
+      Object.keys(totals).forEach(k=>{ totals[k]+=Math.max(0,m.buckets[k]||0); });
+  }
+
+  const previstoData = MONTHS.map((_,i)=>getPrevisto(i));
+
+  const bucketLabels = ['Seco (<1mm)','1–19 mm','20–39 mm','40–59 mm','60–79 mm','≥80 mm'];
+  const realColors   = ['#dde2ea','#93b8df','#2d6cc0','#1a4278','#0d2b54','#050f1e'];
+  const fcColors     = ['rgba(221,226,234,0.52)','rgba(147,184,223,0.52)','rgba(45,108,192,0.48)',
+                        'rgba(26,66,120,0.48)','rgba(13,43,84,0.48)','rgba(5,15,30,0.48)'];
+  const histColors   = ['rgba(210,218,228,0.38)','rgba(130,168,205,0.35)','rgba(45,108,192,0.28)',
+                        'rgba(26,66,120,0.28)','rgba(13,43,84,0.28)','rgba(5,15,30,0.28)'];
+
+  const monthType = MONTHS.map((_,i)=>{
+    const m = monthly[i];
+    if(m && m.days>0 && !m.isForecast) return 'real';
+    return previstoData[i].source;
+  });
+
+  const chartLabels = MONTHS.map((mn,i)=>
+    monthType[i]==='real' ? mn : monthType[i]==='forecast' ? mn+'*' : mn+'°'
+  );
+
+  // datasets empilhados — valores nunca negativos
+  const datasets = [0,1,2,3,4,5].map(k=>({
+    label: bucketLabels[k],
+    data: MONTHS.map((_,i)=>{
+      const m = monthly[i];
+      const val = (m && m.days>0 && !m.isForecast)
+        ? Math.max(0, m.buckets[k]||0)
+        : Math.max(0, previstoData[i].buckets[k]||0);
+      return val;
+    }),
+    backgroundColor: MONTHS.map((_,i)=>{
+      if(monthType[i]==='real')     return realColors[k];
+      if(monthType[i]==='forecast') return fcColors[k];
+      return histColors[k];
+    }),
+    borderWidth:0,
+    stack:'dias'
+  }));
+
+  // mm previsto e realizado para o segundo gráfico
+  const mmRealizado  = MONTHS.map((_,i)=>{
+    const m = monthly[i];
+    return (m && m.days>0 && !m.isForecast) ? +m.precTotal.toFixed(1) : null;
+  });
+  const mmPrevisto   = previstoData.map(p=> +p.precTotal.toFixed(1));
+  const mmHistorico  = city.rain; // sempre disponível como referência
+
+  document.getElementById('rainArea').innerHTML = `
+    <div class="two-col" style="margin-bottom:12px;">
+      <div class="card">
+        <div class="card-title">Dias por escala de chuva — ${yr} (acumulado real)</div>
+        <div class="rain-scale">
+          <div class="rain-bucket"><div class="rb-label">Seco &lt;1mm</div><div class="rb-val" style="color:var(--text3);">${totals[0]}</div><div class="rb-sub">dias</div></div>
+          <div class="rain-bucket"><div class="rb-label">1–19 mm</div><div class="rb-val" style="color:#93b8df;">${totals[1]}</div><div class="rb-sub">dias</div></div>
+          <div class="rain-bucket"><div class="rb-label">20–39 mm</div><div class="rb-val" style="color:#2d6cc0;">${totals[2]}</div><div class="rb-sub">dias</div></div>
+          <div class="rain-bucket"><div class="rb-label">40–59 mm</div><div class="rb-val" style="color:#1a4278;">${totals[3]}</div><div class="rb-sub">dias</div></div>
+          <div class="rain-bucket"><div class="rb-label">60–79 mm</div><div class="rb-val" style="color:#0d2b54;">${totals[4]}</div><div class="rb-sub">dias</div></div>
+          <div class="rain-bucket"><div class="rb-label">≥ 80 mm</div><div class="rb-val" style="color:#050f1e;">${totals[5]}</div><div class="rb-sub">dias</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Evolução mensal por escala (dias) + previsão</div>
+        <div class="legend">
+          <span><span class="ldot-sq" style="background:#2d6cc0;width:10px;height:10px;border-radius:2px;"></span>Dados reais</span>
+          <span><span class="ldot-sq" style="background:rgba(45,108,192,0.48);width:10px;height:10px;border-radius:2px;border:1px dashed #2d6cc0;"></span>Previsão* (Open-Meteo)</span>
+          <span><span class="ldot-sq" style="background:rgba(45,108,192,0.28);width:10px;height:10px;border-radius:2px;border:1px dashed #8a96a8;"></span>Normal hist.°</span>
+        </div>
+        <div class="chart-wrap-md"><canvas id="rainScaleChart" role="img" aria-label="Evolução mensal de dias de chuva por escala incluindo previsão"></canvas></div>
+        <div class="fcast-note">* Open-Meteo forecast (próximos 16 dias) &nbsp;·&nbsp; ° Normal histórica 30 anos (referência)</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-title">Precipitação (mm) — realizado vs previsto — 12 meses</div>
+      <div class="legend">
+        <span><span class="ldot-sq" style="background:#0d2b54;width:10px;height:10px;border-radius:2px;"></span>Realizado</span>
+        <span><span class="ldot-sq" style="background:rgba(45,108,192,0.5);width:10px;height:10px;border-radius:2px;"></span>Previsto (forecast / normal hist.)</span>
+        <span><span class="ldot" style="background:#8a96a8;"></span>Normal histórica</span>
+      </div>
+      <div class="chart-wrap"><canvas id="rainMmChart" role="img" aria-label="Precipitação realizado vs previsto por mês"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Detalhamento mensal — realizado vs previsto</div>
+      <div class="tbl-wrap"><table class="dtbl" id="rainTable"></table></div>
+    </div>
+  `;
+
+  // ── Gráfico escala (empilhado) ──
+  if(rainScaleInst) rainScaleInst.destroy();
+  rainScaleInst = new Chart(document.getElementById('rainScaleChart').getContext('2d'),{
+    type:'bar',
+    data:{ labels:chartLabels, datasets },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          mode:'index', intersect:false,
+          callbacks:{
+            title: items => {
+              const i = items[0].dataIndex;
+              const src = monthType[i]==='real' ? ' — real' : monthType[i]==='forecast' ? ' — forecast (Open-Meteo)' : ' — normal histórica';
+              return MONTHS[i]+src;
+            },
+            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y} dias`
+          }
+        }
+      },
+      scales:{
+        x:{ ticks:{font:{size:10},autoSkip:false,maxRotation:0}, stacked:true, grid:{color:'rgba(0,0,0,0.04)'} },
+        y:{ stacked:true, min:0, ticks:{font:{size:10},callback:v=>v+'d'}, grid:{color:'rgba(0,0,0,0.04)'} }
+      }
+    }
+  });
+
+  // ── Gráfico mm realizado vs previsto ──
+  if(window._rainMmInst) window._rainMmInst.destroy();
+  window._rainMmInst = new Chart(document.getElementById('rainMmChart').getContext('2d'),{
+    type:'bar',
+    data:{
+      labels: chartLabels,
+      datasets:[
+        {
+          label:'Realizado', data:mmRealizado,
+          backgroundColor: MONTHS.map((_,i)=> monthType[i]==='real' ? '#0d2b54' : 'transparent'),
+          borderColor:'#0d2b54', borderWidth:0,
+          barPercentage:0.4, categoryPercentage:0.85, order:1
+        },
+        {
+          label:'Previsto', data:mmPrevisto,
+          backgroundColor: MONTHS.map((_,i)=>
+            monthType[i]==='forecast' ? 'rgba(45,108,192,0.55)' : 'rgba(130,148,168,0.35)'),
+          borderColor: MONTHS.map((_,i)=>
+            monthType[i]==='forecast' ? '#2d6cc0' : '#8a96a8'),
+          borderWidth:1,
+          barPercentage:0.4, categoryPercentage:0.85, order:2
+        },
+        {
+          label:'Normal histórica', data:mmHistorico,
+          type:'line', borderColor:'rgba(138,150,168,0.7)',
+          borderWidth:1.5, borderDash:[4,3],
+          pointRadius:0, fill:false, tension:0.3, order:0
+        }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          mode:'index', intersect:false,
+          callbacks:{
+            title: items => {
+              const i = items[0].dataIndex;
+              const src = monthType[i]==='real' ? ' — real' : monthType[i]==='forecast' ? ' — forecast' : ' — normal hist.';
+              return MONTHS[i]+src;
+            },
+            label: ctx => {
+              if(ctx.dataset.label==='Realizado' && ctx.parsed.y==null) return null;
+              return `${ctx.dataset.label}: ${ctx.parsed.y} mm`;
+            }
+          }
+        }
+      },
+      scales:{
+        x:{ ticks:{font:{size:10},autoSkip:false,maxRotation:0}, grid:{color:'rgba(0,0,0,0.04)'} },
+        y:{ min:0, ticks:{font:{size:10},callback:v=>v+'mm'}, grid:{color:'rgba(0,0,0,0.04)'} }
+      }
+    }
+  });
+
+  // ── Tabela detalhada (formato da imagem) ──
+  const thead = `<tr>
+    <th>Mês</th>
+    <th>Real — chuva mm</th>
+    <th>Real — dias chuva</th>
+    <th>Real — dias secos</th>
+    <th>Prev. — chuva mm</th>
+    <th>Prev. — dias chuva</th>
+    <th>Prev. — fonte</th>
+  </tr>`;
+
+  const rows = MONTHS.map((mn,i)=>{
+    const isReal = monthType[i]==='real';
+    const rm = isReal ? monthly[i] : null;
+    const pm = previstoData[i];
+
+    // delta mm (real vs previsto)
+    let deltaMm = null, deltaClass = '', deltaStr = '';
+    if(rm){
+      deltaMm = +(rm.precTotal - pm.precTotal).toFixed(0);
+      deltaClass = deltaMm > 0 ? 'pos' : 'neg';
+      deltaStr = `<span class="diff ${deltaClass}">${deltaMm>0?'+':''}${deltaMm}</span>`;
+    }
+
+    const realMm   = rm ? `${rm.precTotal} mm${deltaStr}` : '<span style="color:var(--text3);">—</span>';
+    const realChuva= rm ? rm.rainDays : '<span style="color:var(--text3);">—</span>';
+    const realSeco = rm ? rm.dryDays  : '<span style="color:var(--text3);">—</span>';
+
+    const srcLabel = pm.source==='forecast'
+      ? '<span style="color:var(--blue);font-size:10px;">forecast</span>'
+      : '<span style="color:var(--gray);font-size:10px;">normal hist.</span>';
+
+    return `<tr>
+      <td style="font-weight:600;color:var(--navy);">${mn}</td>
+      <td>${realMm}</td>
+      <td>${realChuva}</td>
+      <td>${realSeco}</td>
+      <td>${pm.precTotal} mm</td>
+      <td>${pm.rainDays}</td>
+      <td>${srcLabel}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('rainTable').innerHTML = `<thead>${thead}</thead><tbody>${rows}</tbody>`;
+}
+
+// ── HISTORICAL ──
+function renderHistorical(city){
+  const means = tmean(city);
+  const avg = (means.reduce((a,b)=>a+b,0)/12).toFixed(1);
+  const totalRain = city.rain.reduce((a,b)=>a+b,0);
+
+  if(tempInst) tempInst.destroy();
+  tempInst = new Chart(document.getElementById('tempChart').getContext('2d'),{
+    type:'line',
+    data:{labels:MONTHS,datasets:[
+      {label:'Máx.',data:city.tmax,borderColor:'#b83030',borderWidth:2,pointRadius:3,tension:.35,fill:false},
+      {label:'Mín.',data:city.tmin,borderColor:'#2d6cc0',borderWidth:2,pointRadius:3,tension:.35,fill:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false}},
+      scales:{x:{ticks:{font:{size:10},autoSkip:false,maxRotation:0},grid:{color:'rgba(0,0,0,0.05)'}},
+              y:{ticks:{font:{size:10},callback:v=>v+'°'},grid:{color:'rgba(0,0,0,0.05)'}}}}
+  });
+
+  if(rainInst) rainInst.destroy();
+  rainInst = new Chart(document.getElementById('rainChart').getContext('2d'),{
+    type:'bar',
+    data:{labels:MONTHS,datasets:[{label:'Chuva',data:city.rain,backgroundColor:'rgba(45,108,192,.65)',borderColor:'#2d6cc0',borderWidth:1}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.y+' mm'}}},
+      scales:{x:{ticks:{font:{size:10},autoSkip:false,maxRotation:0},grid:{color:'rgba(0,0,0,0.05)'}},
+              y:{ticks:{font:{size:10},callback:v=>v+'mm'},grid:{color:'rgba(0,0,0,0.05)'}}}}
+  });
+
+  document.getElementById('tableTitle').textContent = city.name+' — '+city.state+' · Histórico';
+  const thead = `<tr><th></th>${MONTHS.map(m=>`<th>${m}</th>`).join('')}</tr>`;
+  const rows = [['Tmáx (°C)',city.tmax],['Tmín (°C)',city.tmin],['Média (°C)',means],['Chuva (mm)',city.rain]]
+    .map(([l,d])=>`<tr><td>${l}</td>${d.map(v=>`<td>${v}</td>`).join('')}</tr>`).join('');
+  document.getElementById('dataTable').innerHTML=`<thead>${thead}</thead><tbody>${rows}</tbody>`;
+  document.getElementById('climateMeta').innerHTML=`
+    <span class="badge btype">${city.climate}</span>
+    <span class="badge bwet">Chuvosa: ${city.season_wet}</span>
+    <span class="badge bdry">Seca: ${city.season_dry}</span>
+    <span class="badge bblue">${city.alt}m altitude</span>
+    <div style="margin-top:10px;display:flex;gap:16px;flex-wrap:wrap;">
+      <span style="font-size:12px;color:var(--text2);">Média anual: <strong>${avg}°C</strong></span>
+      <span style="font-size:12px;color:var(--text2);">Precipitação: <strong>${totalRain} mm/ano</strong></span>
+      <span style="font-size:12px;color:var(--text2);">Tmáx: <strong>${Math.max(...city.tmax)}°C</strong></span>
+      <span style="font-size:12px;color:var(--text2);">Tmín: <strong>${Math.min(...city.tmin)}°C</strong></span>
+    </div>
+  `;
+}
+
+// ── COMPARE ALL ──
+function renderCompareAll(){
+  if(compareInst) compareInst.destroy();
+  document.getElementById('compareLegend').innerHTML = cities.map((c,i)=>
+    `<span class="${i===activeIdx?'hl':''}">
+      <span class="ldot2" style="background:${COLORS[i]};opacity:${i===activeIdx?1:.6};"></span>${c.name}
+    </span>`
+  ).join('');
+  compareInst = new Chart(document.getElementById('compareChart').getContext('2d'),{
+    type:'line',
+    data:{labels:MONTHS,datasets:cities.map((c,i)=>({
+      label:c.name,data:tmean(c),
+      borderColor:COLORS[i],backgroundColor:'transparent',
+      borderWidth:i===activeIdx?3:1.5,
+      pointRadius:i===activeIdx?4:2,
+      borderDash:i===activeIdx?[]:[5,3],
+      tension:.35
+    }))},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y}°C`}}},
+      scales:{x:{ticks:{font:{size:10},autoSkip:false,maxRotation:0},grid:{color:'rgba(0,0,0,0.05)'}},
+              y:{ticks:{font:{size:10},callback:v=>v+'°C'},grid:{color:'rgba(0,0,0,0.05)'}}}}
+  });
+}
+
+
+// ══════════════════════════════════════════════════
+// PREVISÃO 15 DIAS — MULTI-MODELO
+// ══════════════════════════════════════════════════
+
+let fc15Cache = {};
+let fc15ChartInst = null;
+
+// Busca um modelo específico da Open-Meteo forecast API
+async function fetchModel(city, model){
+  const key = city.name + '_' + model;
+  if(fc15Cache[key]) return fc15Cache[key];
+  // forecast_days=16 para garantir 15 dias completos além de hoje
+  const url = `https://api.open-meteo.com/v1/forecast?`+
+    `latitude=${city.lat}&longitude=${city.lon}`+
+    `&daily=precipitation_sum,precipitation_probability_max,temperature_2m_max,temperature_2m_min,weathercode`+
+    `&forecast_days=16`+
+    `&models=${model}`+
+    `&timezone=${encodeURIComponent(city.tz)}`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error(`${model} HTTP ${res.status}`);
+  const data = await res.json();
+  fc15Cache[key] = data.daily;
+  return data.daily;
+}
+
+// Análise estatística dia a dia entre 3 modelos
+function analyzeModels(ecmwf, gfs, icon){
+  // Alinhar ao mesmo número de dias (mínimo disponível)
+  const n = Math.min(
+    ecmwf.time.length,
+    gfs.time.length,
+    icon.time.length,
+    15
+  );
+  const days = [];
+  for(let i=0; i<n; i++){
+    const precs = [
+      ecmwf.precipitation_sum[i] ?? 0,
+      gfs.precipitation_sum[i]   ?? 0,
+      icon.precipitation_sum[i]  ?? 0
+    ].map(v=>Math.max(0,v));
+
+    const probs = [
+      ecmwf.precipitation_probability_max[i] ?? 0,
+      gfs.precipitation_probability_max[i]   ?? 0,
+      icon.precipitation_probability_max[i]  ?? 0
+    ].map(v=>Math.max(0,Math.min(100,v)));
+
+    const tmaxs = [
+      ecmwf.temperature_2m_max[i] ?? null,
+      gfs.temperature_2m_max[i]   ?? null,
+      icon.temperature_2m_max[i]  ?? null
+    ].filter(v=>v!=null);
+
+    const tmins = [
+      ecmwf.temperature_2m_min[i] ?? null,
+      gfs.temperature_2m_min[i]   ?? null,
+      icon.temperature_2m_min[i]  ?? null
+    ].filter(v=>v!=null);
+
+    const mean = arr => arr.reduce((a,b)=>a+b,0)/arr.length;
+    const std  = arr => { const m=mean(arr); return Math.sqrt(arr.map(v=>(v-m)**2).reduce((a,b)=>a+b,0)/arr.length); };
+
+    const precMean = +mean(precs).toFixed(1);
+    const precStd  = +std(precs).toFixed(1);
+    const precMin  = +Math.min(...precs).toFixed(1);
+    const precMax  = +Math.max(...precs).toFixed(1);
+
+    const probMean = Math.round(mean(probs));
+    const probStd  = +std(probs).toFixed(0);
+    // Consenso: % de modelos que preveem chuva (≥1mm)
+    const consensus = Math.round((precs.filter(p=>p>=1).length / 3) * 100);
+
+    // Classificação de confiança pela divergência entre modelos
+    const cv = precMean > 0 ? (precStd/precMean) : 0; // coef. de variação
+    const confidence = cv < 0.3 ? 'alta' : cv < 0.7 ? 'média' : 'baixa';
+
+    const date = new Date(ecmwf.time[i]+'T12:00:00');
+    const weekday = date.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','');
+    const dateStr = date.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+
+    days.push({
+      date: ecmwf.time[i],
+      dateStr, weekday,
+      // por modelo
+      ecmwf: { prec: precs[0], prob: probs[0] },
+      gfs:   { prec: precs[1], prob: probs[1] },
+      icon_m:{ prec: precs[2], prob: probs[2] },
+      // consenso
+      precMean, precStd, precMin, precMax,
+      probMean, probStd, consensus,
+      confidence,
+      tmaxMean: tmaxs.length ? +mean(tmaxs).toFixed(1) : null,
+      tminMean: tmins.length ? +mean(tmins).toFixed(1) : null
+    });
+  }
+
+  // Sumário estatístico do período
+  const rainDays   = days.filter(d=>d.precMean>=1).length;
+  const heavyDays  = days.filter(d=>d.precMean>=20).length;
+  const totalPrec  = +days.reduce((a,d)=>a+d.precMean,0).toFixed(1);
+  const maxPrec    = +Math.max(...days.map(d=>d.precMax)).toFixed(1);
+  const avgProb    = Math.round(days.reduce((a,d)=>a+d.probMean,0)/days.length);
+  const highConsensus = days.filter(d=>d.consensus===100).length;
+
+  return { days, rainDays, heavyDays, totalPrec, maxPrec, avgProb, highConsensus };
+}
+
+function weatherIcon(prob, mm){
+  if(mm>=20) return '⛈';
+  if(mm>=5)  return '🌧';
+  if(mm>=1)  return '🌦';
+  if(prob>40) return '🌥';
+  return '☀';
+}
+
+function alertLevel(analysis){
+  if(analysis.heavyDays>=3 || analysis.totalPrec>100)
+    return {cls:'alert-red', icon:'🔴', msg:`Atenção: ${analysis.heavyDays} dia(s) com chuva intensa previstos. Total estimado: ${analysis.totalPrec} mm em 15 dias.`};
+  if(analysis.rainDays>=6 || analysis.totalPrec>50)
+    return {cls:'alert-amber', icon:'🟡', msg:`Período com chuva moderada: ${analysis.rainDays} dias de chuva previstos (${analysis.totalPrec} mm total estimado).`};
+  return {cls:'alert-green', icon:'🟢', msg:`Período predominantemente seco: ${analysis.rainDays} dias de chuva previstos (${analysis.totalPrec} mm total estimado).`};
+}
+
+async function renderFC15(city){
+  const el = document.getElementById('fc15Area');
+  el.innerHTML = `<div class="loading-box"><div class="spinner"></div><p>Consultando modelos ECMWF, GFS e ICON…</p></div>`;
+
+  try {
+    const [ecmwf, gfs, icon] = await Promise.all([
+      fetchModel(city,'ecmwf_ifs025'),
+      fetchModel(city,'gfs_seamless'),
+      fetchModel(city,'icon_seamless')
+    ]);
+
+    const A = analyzeModels(ecmwf, gfs, icon);
+    const alert = alertLevel(A);
+    const maxMm = Math.max(...A.days.map(d=>d.precMax), 1);
+
+    // ── cards de resumo ──
+    const statsHtml = `
+      <div class="fc-stat-grid">
+        <div class="fc-stat"><div class="fsl">Dias de chuva</div><div class="fsv">${A.rainDays}<span class="fsu"> / 15</span></div></div>
+        <div class="fc-stat"><div class="fsl">Dias chuva intensa</div><div class="fsv">${A.heavyDays}<span class="fsu"> ≥20mm</span></div></div>
+        <div class="fc-stat"><div class="fsl">Total estimado</div><div class="fsv">${A.totalPrec}<span class="fsu"> mm</span></div></div>
+        <div class="fc-stat"><div class="fsl">Pico estimado</div><div class="fsv">${A.maxPrec}<span class="fsu"> mm/dia</span></div></div>
+        <div class="fc-stat"><div class="fsl">Prob. média</div><div class="fsv">${A.avgProb}<span class="fsu"> %</span></div></div>
+        <div class="fc-stat"><div class="fsl">Consenso total</div><div class="fsv">${A.highConsensus}<span class="fsu"> dias (3/3 modelos)</span></div></div>
+      </div>`;
+
+    // ── minicalendário ──
+    const calHtml = `<div class="fc15-grid">${A.days.map(d=>{
+      const cls = d.precMean>=20 ? 'heavy-day' : d.precMean>=1 ? 'rain-day' : '';
+      const barW = Math.round((d.precMean/maxMm)*100);
+      return `<div class="fc15-day ${cls}">
+        <div class="fc15-date">${d.weekday} ${d.dateStr}</div>
+        <div class="fc15-icon">${weatherIcon(d.probMean,d.precMean)}</div>
+        <div class="fc15-prob">${d.probMean}%</div>
+        <div class="fc15-mm">${d.precMean} mm</div>
+        <div class="fc15-bar" style="width:${barW}%"></div>
+      </div>`;
+    }).join('')}</div>`;
+
+    // ── tabela comparativa ──
+    const tblHtml = `
+      <div class="tbl-wrap">
+      <table class="fc-tbl">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th><span class="model-pill model-ecmwf">ECMWF</span><br>mm</th>
+            <th><span class="model-pill model-gfs">GFS</span><br>mm</th>
+            <th><span class="model-pill model-icon">ICON</span><br>mm</th>
+            <th>Média<br>mm</th>
+            <th>Desv.Pad.<br>mm</th>
+            <th>Mín–Máx<br>mm</th>
+            <th>Prob.<br>média %</th>
+            <th>Consenso<br>%</th>
+            <th>Confiança</th>
+            <th>Tmáx<br>°C</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${A.days.map(d=>{
+            const rowCls = d.precMean>=20 ? 'cell-hi' : d.precMean>=5 ? 'cell-md' : '';
+            const confColor = d.confidence==='alta'?'color:#1a5c3a':d.confidence==='média'?'color:var(--amber)':'color:var(--red)';
+            return `<tr>
+              <td>${d.weekday} ${d.dateStr}</td>
+              <td class="${d.ecmwf.prec>=20?'cell-hi':d.ecmwf.prec>=1?'cell-md':''}">${d.ecmwf.prec}</td>
+              <td class="${d.gfs.prec>=20?'cell-hi':d.gfs.prec>=1?'cell-md':''}">${d.gfs.prec}</td>
+              <td class="${d.icon_m.prec>=20?'cell-hi':d.icon_m.prec>=1?'cell-md':''}">${d.icon_m.prec}</td>
+              <td class="${rowCls}" style="font-weight:600;">${d.precMean}</td>
+              <td>${d.precStd}</td>
+              <td style="font-size:10px;">${d.precMin}–${d.precMax}</td>
+              <td class="${d.probMean>=70?'cell-hi':d.probMean>=40?'cell-md':''}">${d.probMean}%</td>
+              <td>${d.consensus}%</td>
+              <td style="font-size:10px;font-weight:500;${confColor}">${d.confidence}</td>
+              <td>${d.tmaxMean??'—'}°</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+      </div>`;
+
+    // ── gráfico multi-modelo ──
+    const chartId = 'fc15Chart_'+Date.now();
+    el.innerHTML = `
+      <div class="alert-box ${alert.cls}" style="margin-bottom:12px;">${alert.icon} ${alert.msg}</div>
+      ${statsHtml}
+      <div class="card" style="margin-bottom:12px;">
+        <div class="card-title">Mini-calendário — próximos 15 dias (consenso dos modelos)</div>
+        ${calHtml}
+        <div class="fcast-note" style="margin-top:8px;">% = probabilidade de chuva · mm = precipitação média dos 3 modelos · barra inferior = intensidade relativa</div>
+      </div>
+      <div class="two-col" style="margin-bottom:12px;">
+        <div class="card">
+          <div class="card-title">Precipitação por modelo (mm/dia)</div>
+          <div class="legend">
+            <span><span class="model-pill model-ecmwf">ECMWF</span></span>
+            <span><span class="model-pill model-gfs">GFS</span></span>
+            <span><span class="model-pill model-icon">ICON</span></span>
+            <span><span class="ldot" style="background:#0d2b54;"></span>Média</span>
+          </div>
+          <div class="chart-wrap-fc"><canvas id="${chartId}_prec" role="img" aria-label="Precipitação prevista pelos 3 modelos"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Probabilidade de chuva (%) por modelo</div>
+          <div class="legend">
+            <span><span class="model-pill model-ecmwf">ECMWF</span></span>
+            <span><span class="model-pill model-gfs">GFS</span></span>
+            <span><span class="model-pill model-icon">ICON</span></span>
+          </div>
+          <div class="chart-wrap-fc"><canvas id="${chartId}_prob" role="img" aria-label="Probabilidade de chuva pelos 3 modelos"></canvas></div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:4px;">
+        <div class="card-title">Tabela comparativa — ECMWF × GFS × ICON + análise estatística</div>
+        ${tblHtml}
+        <div class="fcast-note" style="margin-top:8px;">
+          <span class="model-pill model-ecmwf">ECMWF IFS 0.25°</span>
+          <span class="model-pill model-gfs">GFS Seamless</span>
+          <span class="model-pill model-icon">ICON Seamless</span>
+          · Open-Meteo API (CC BY 4.0) · Atualizado diariamente
+        </div>
+      </div>
+    `;
+
+    // renderizar gráficos após inserir no DOM
+    requestAnimationFrame(()=>{
+      if(fc15ChartInst) { try{ fc15ChartInst.forEach(c=>c.destroy()); }catch(e){} }
+      const labels = A.days.map(d=>d.dateStr);
+
+      const cPrec = new Chart(document.getElementById(chartId+'_prec').getContext('2d'),{
+        type:'bar',
+        data:{ labels, datasets:[
+          { label:'ECMWF', data:A.days.map(d=>d.ecmwf.prec),  backgroundColor:'rgba(28,66,120,0.55)', borderColor:'#1a4278', borderWidth:1, order:2 },
+          { label:'GFS',   data:A.days.map(d=>d.gfs.prec),    backgroundColor:'rgba(29,120,80,0.45)',  borderColor:'#1d7850', borderWidth:1, order:3 },
+          { label:'ICON',  data:A.days.map(d=>d.icon_m.prec), backgroundColor:'rgba(154,85,0,0.4)',   borderColor:'#9a5500', borderWidth:1, order:4 },
+          { label:'Média', data:A.days.map(d=>d.precMean),
+            type:'line', borderColor:'#0d2b54', borderWidth:2.5, pointRadius:3,
+            fill:false, tension:0.3, order:1, pointBackgroundColor:'#0d2b54'
+          }
+        ]},
+        options:{ responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{display:false}, tooltip:{mode:'index',intersect:false,
+            callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y} mm`}} },
+          scales:{
+            x:{ticks:{font:{size:9},autoSkip:false,maxRotation:45},grid:{color:'rgba(0,0,0,0.04)'}},
+            y:{min:0,ticks:{font:{size:10},callback:v=>v+'mm'},grid:{color:'rgba(0,0,0,0.04)'}}
+          }}
+      });
+
+      const cProb = new Chart(document.getElementById(chartId+'_prob').getContext('2d'),{
+        type:'line',
+        data:{ labels, datasets:[
+          { label:'ECMWF', data:A.days.map(d=>d.ecmwf.prob),  borderColor:'#1a4278', backgroundColor:'transparent', borderWidth:2, pointRadius:3, tension:0.3 },
+          { label:'GFS',   data:A.days.map(d=>d.gfs.prob),    borderColor:'#1d7850', backgroundColor:'transparent', borderWidth:2, pointRadius:3, tension:0.3 },
+          { label:'ICON',  data:A.days.map(d=>d.icon_m.prob), borderColor:'#9a5500', backgroundColor:'transparent', borderWidth:2, pointRadius:3, tension:0.3 }
+        ]},
+        options:{ responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{display:false}, tooltip:{mode:'index',intersect:false,
+            callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y}%`}} },
+          scales:{
+            x:{ticks:{font:{size:9},autoSkip:false,maxRotation:45},grid:{color:'rgba(0,0,0,0.04)'}},
+            y:{min:0,max:100,ticks:{font:{size:10},callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.04)'}}
+          }}
+      });
+
+      fc15ChartInst = [cPrec, cProb];
+    });
+
+  } catch(e){
+    el.innerHTML = `<div class="error-box">⚠ Erro ao buscar modelos: ${e.message}</div>`;
+  }
+}
+
+// ── MAIN SELECT ──
+async function selectCity(idx){
+  activeIdx = idx;
+  const city = cities[idx];
+  updateHeader(city);
+  renderTabs();
+  renderHistorical(city);
+  renderCompareAll();
+
+  const spinner = `<div class="loading-box"><div class="spinner"></div><p>Buscando dados…</p></div>`;
+  document.getElementById('liveArea').innerHTML = spinner;
+  document.getElementById('cmpArea').innerHTML  = spinner;
+  document.getElementById('rainArea').innerHTML = spinner;
+  renderFC15(city);
+
+  try {
+    const [archiveDaily, forecastDaily] = await Promise.all([
+      fetchLiveData(city),
+      fetchForecastData(city)
+    ]);
+    const archiveMonthly  = dailyToMonthly(archiveDaily, false);
+    const forecastMonthly = dailyToMonthly(forecastDaily, true);
+    const merged = mergeMonthly(archiveMonthly, forecastMonthly);
+
+    renderLiveArea(city, merged);
+    renderCmpArea(city, merged);
+    renderRainArea(city, archiveMonthly, forecastMonthly);
+  } catch(e){
+    const err = `<div class="error-box">Não foi possível carregar dados em tempo real. Verifique sua conexão.<br><small>${e.message}</small></div>`;
+    document.getElementById('liveArea').innerHTML = err;
+    document.getElementById('cmpArea').innerHTML  = err;
+    document.getElementById('rainArea').innerHTML = err;
+  }
+}
+
+selectCity(0);
+</script>
+</body>
+</html>
