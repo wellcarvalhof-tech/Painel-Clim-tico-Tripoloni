@@ -177,6 +177,12 @@ table.fc-tbl .cell-hi{background:#faeaea;color:#8a1c1c;font-weight:600;}
 table.fc-tbl .cell-md{background:var(--blue-bg);color:var(--navy2);font-weight:600;}
 table.fc-tbl .cell-lo{color:var(--text3);}
 
+/* ── LINK CLIMA × OBRA ── */
+.obra-link{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;background:var(--navy);color:#fff;border-radius:var(--radius);padding:14px 16px;text-decoration:none;margin-top:2px;}
+.obra-link:hover{background:var(--navy2);}
+.obra-link .ol-t{font-size:14px;font-weight:600;}
+.obra-link .ol-s{font-size:12px;opacity:.7;margin-top:2px;}
+.obra-link .ol-b{font-size:12px;font-weight:600;background:#fff;color:var(--navy);padding:7px 12px;border-radius:20px;white-space:nowrap;}
 footer{text-align:center;font-size:11px;color:var(--text3);padding:16px 0 24px;}
 </style>
 </head>
@@ -208,6 +214,13 @@ footer{text-align:center;font-size:11px;color:var(--text3);padding:16px 0 24px;}
 
   <div class="section-label">análise de chuvas — ano atual + previsão</div>
   <div id="rainArea"><div class="loading-box"><div class="spinner"></div><p>Aguardando dados…</p></div></div>
+
+  <div class="section-label">impacto na obra — el niño 2026-27</div>
+  <a class="obra-link" id="obraLink" href="clima-obra.html">
+    <div><div class="ol-t">Clima × Obra: dias perdidos, chuva e dias de sol</div>
+    <div class="ol-s" id="obraLinkSub">Normal × anos de El Niño forte × 2026 observado</div></div>
+    <span class="ol-b">Abrir análise →</span>
+  </a>
 
   <div class="section-label">normais climatológicas históricas (30 anos)</div>
   <div class="two-col" style="margin-bottom:12px;">
@@ -1136,6 +1149,9 @@ async function selectCity(idx){
   const city = cities[idx];
   updateHeader(city);
   renderTabs();
+  const ol=document.getElementById('obraLink');
+  if(ol){ol.href='clima-obra.html?city='+encodeURIComponent(city.name);
+    document.getElementById('obraLinkSub').textContent=city.name+' — normal × anos de El Niño forte × 2026 observado';}
   renderHistorical(city);
   renderCompareAll();
 

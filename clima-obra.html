@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Clima × Obra — El Niño 2026-27</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f6f7f9;--card:#fff;--ink:#16202b;--mute:#5d6b7a;--line:#dfe4ea;
+  --obs:#0b63ce;--norm:#9aa3ad;--nino:#d97706;--band:rgba(107,114,128,.16);
+  --a1:#d97706;--a2:#c2410c;--a3:#9333ea;--a4:#0f766e;--pos:#0f766e;--neg:#b91c1c;--warn:#fff4e5;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0f141a;--card:#171e26;--ink:#e6edf3;--mute:#9aa7b4;--line:#2a3440;
+  --obs:#5ea8ff;--norm:#6b7480;--nino:#f59e0b;--band:rgba(154,163,173,.18);
+  --a1:#f59e0b;--a2:#fb7a45;--a3:#c084fc;--a4:#2dd4bf;--pos:#34d399;--neg:#f87171;--warn:#2a2213;}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:22px;margin:0 0 4px}
+h2{font-size:15px;margin:0 0 4px}
+.lead{color:var(--mute);font-size:13px;margin:0 0 12px}
+.sub{color:var(--mute);margin:0 0 18px;font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}
+select,button{font:inherit;padding:7px 10px;border-radius:7px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+label{font-size:14px}
+button{cursor:pointer}button.pri{background:var(--obs);color:#fff;border-color:var(--obs)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:12px}
+.kpi{border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.kpi .l{font-size:12px;color:var(--mute)}.kpi .v{font-size:24px;font-weight:650;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:12px;color:var(--mute)}
+.chart{position:relative;height:340px}
+table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}th{color:var(--mute);font-weight:600;vertical-align:bottom}
+th.grp{text-align:center;border-bottom:none;color:var(--ink)}
+.tbl{overflow-x:auto}
+.pos{color:var(--pos);font-weight:600}.neg{color:var(--neg);font-weight:600}
+.note{font-size:12.5px;color:var(--mute);margin:8px 0 0}
+.status{font-size:13px;color:var(--mute)}
+.enso{background:var(--warn);border-color:transparent}
+.enso ul{margin:6px 0 0;padding-left:18px}.enso li{margin:3px 0}
+details{margin-top:8px}summary{cursor:pointer;color:var(--mute);font-size:13px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:6px 10px}.seg button.on{background:var(--obs);color:#fff}
+.dim{color:var(--mute)}
+.topbar{background:#0d2b54;color:#fff;padding:12px 16px;display:flex;gap:14px;align-items:center;font-size:14px;position:sticky;top:0;z-index:10}
+.topbar a{color:#fff;text-decoration:none;font-weight:600}.topbar a:hover{text-decoration:underline}
+.topbar span{opacity:.6}
+</style>
+</head>
+<body>
+<div class="topbar"><a href="./">← Painel Climático</a><span>Clima × Obra</span></div>
+<div class="wrap">
+  <h1>Clima × Obra — impacto do El Niño 2026-27</h1>
+  <p class="sub">Chuva, dias perdidos, dias de sol e nublados: <b>normal</b> (1991–2020) × <b>anos de El Niño forte</b> (1982-83, 1997-98, 2015-16, 2023-24) × <b>2026 observado</b>. Dados Open-Meteo (ERA5, CC BY 4.0).</p>
+
+  <div class="card enso">
+    <h2>O que as agências preveem (consultado em 01/10/2026)</h2>
+    <ul>
+      <li><b>El Niño muito forte</b>, possivelmente o mais intenso desde 1950. Pico entre <b>out e dez/2026</b>; enfraquece entre <b>abr e jun/2027</b>.</li>
+      <li><b>PR:</b> chuva acima da média e risco de cheias. <b>MT:</b> chuva abaixo da média e calor. <b>MA:</b> chuva abaixo da média, mais forte no outono de 2027.</li>
+      <li>Como este evento deve ser mais forte que os 4 anos de referência, trate os números de "El Niño" abaixo como <b>cenário mínimo</b> de impacto.</li>
+    </ul>
+    <details><summary>Fontes e detalhes</summary>
+      <p class="note">NOAA/CPC (28/09): >90% de chance de evento muito forte, persiste até mar–mai/2027. IRI (21/09): 100% El Niño até fev/27. OMM (set): anomalia ~+3,6 °C. INMET/INPE (30/09): muito forte com 95% de chance, pico OND.</p>
+    </details>
+  </div>
+
+  <div class="card">
+    <div class="ctrl">
+      <label>Obra <select id="city"></select></label>
+      <label>Período
+        <select id="win"><option value="9">Ano hidrológico (set/26 → ago/27)</option><option value="1">Ano civil (jan → dez/26)</option></select></label>
+      <label title="Chuva diária a partir da qual o dia é considerado perdido para a frente de serviço">Dia perdido se chuva ≥
+        <select id="thr"><option value="5">5 mm</option><option value="10" selected>10 mm</option><option value="20">20 mm</option></select></label>
+      <label title="Após chuva forte, o solo precisa de um dia para secar (terraplenagem, base, imprimação)"><input type="checkbox" id="lag" checked> + 1 dia de secagem após chuva ≥ 25 mm</label>
+      <span class="status" id="status"></span>
+    </div>
+    <div class="kpis" id="kpis"></div>
+  </div>
+
+  <div class="card">
+    <h2>Composição do mês — céu, chuva e dias perdidos</h2>
+    <p class="lead">Colunas: dias de sol, dias nublados sem chuva e dias de chuva (somam os dias do mês). Linha vermelha: dias perdidos. Linha azul: chuva em mm (eixo da direita). Nos cenários El Niño e 2026, as linhas tracejadas mostram o ano normal para comparação.</p>
+    <div class="ctrl" style="margin-bottom:10px">
+      <span class="status">Cenário:</span>
+      <div class="seg" id="scen">
+        <button data-k="N">Ano normal</button>
+        <button data-k="E" class="on">El Niño forte (média)</button>
+        <button data-k="O">2026 observado</button>
+      </div>
+    </div>
+    <div class="chart" style="height:380px"><canvas id="cMon"></canvas></div>
+  </div>
+
+  <div class="card">
+    <h2>Tabela mensal da obra</h2>
+    <div class="tbl"><table id="tMon"></table></div>
+    <p class="note">Dia de chuva = chuva ≥ 1 mm. Nos dias sem chuva: dia de sol = nebulosidade média ≤ 62,5% (até 5 oitavos, céu claro a parcialmente nublado, escala OMM); dia nublado = acima disso (6 a 8 oitavos). Dia perdido = chuva acima do limiar escolhido (e, se marcado, o dia seguinte a chuva ≥ 25 mm). Ajuste o limiar ao que o diário de obra mostra para cada serviço.</p>
+  </div>
+
+  <div class="card">
+    <h2 id="accTitle">Chuva acumulada (mm)</h2>
+    <p class="lead">Faixa cinza: variação normal (80% dos anos ficam dentro). Laranja: anos de El Niño forte. Azul: 2026 observado + previsão de 16 dias (pontilhado).</p>
+    <div class="chart"><canvas id="cAcc"></canvas></div>
+  </div>
+
+  <div class="card">
+    <h2>Resumo de todas as obras — dias perdidos</h2>
+    <div class="ctrl" style="margin-bottom:10px">
+      <button class="pri" id="runAll">Calcular para todas as obras</button>
+      <span class="status" id="allStatus">9 consultas à API (~20–40 s). Usa o limiar escolhido acima.</span>
+    </div>
+    <div class="tbl"><table id="tAll">
+      <thead>
+        <tr><th></th><th class="grp" colspan="4">Out–Dez/2026</th><th class="grp" colspan="4">Jan–Mar/2027</th></tr>
+        <tr><th>Obra</th><th>Normal</th><th>El Niño</th><th>Diferença</th><th>Anos que<br>confirmam</th>
+        <th>Normal</th><th>El Niño</th><th>Diferença</th><th>Anos que<br>confirmam</th></tr>
+      </thead><tbody></tbody></table></div>
+    <p class="note">"El Niño" = média dos 4 anos de referência (entre parênteses: melhor–pior ano). "Anos que confirmam" = quantos dos 4 anos foram na mesma direção da média; 2/4 significa sinal inconclusivo.</p>
+  </div>
+</div>
+
+<script>
+const cities = [
+ {name:'Sinop',state:'MT',lat:-11.86,lon:-55.50,tz:'America/Cuiaba'},
+ {name:'Sorriso',state:'MT',lat:-12.54,lon:-55.72,tz:'America/Cuiaba'},
+ {name:'Assis',state:'PR',lat:-23.47,lon:-51.01,tz:'America/Sao_Paulo'},
+ {name:'Irati',state:'PR',lat:-25.47,lon:-50.65,tz:'America/Sao_Paulo'},
+ {name:'Pitanga',state:'PR',lat:-24.76,lon:-51.76,tz:'America/Sao_Paulo'},
+ {name:'Palmeira',state:'PR',lat:-25.43,lon:-50.00,tz:'America/Sao_Paulo'},
+ {name:'Maringá',state:'PR',lat:-23.42,lon:-51.93,tz:'America/Sao_Paulo'},
+ {name:'Ivaiporã',state:'PR',lat:-24.25,lon:-51.68,tz:'America/Sao_Paulo'},
+ {name:'Miranda do Norte',state:'MA',lat:-3.68,lon:-44.56,tz:'America/Fortaleza'}
+];
+const ANALOGS=[1982,1997,2015,2023];
+const MES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const CUR=2026;
+const COLORS={sun:'#f2b705',cloudy:'#9fb3c8',rainy:'#4a6a8a',lost:'#e5484d',rain:'#3b8eea'};
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const $=id=>document.getElementById(id);
+const cache={};
+let scen='E', charts={};
+
+const iso=d=>d.toISOString().slice(0,10);
+const addDays=(s,n)=>{const d=new Date(s+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+n);return iso(d)};
+const today=()=>iso(new Date());
+const pad=n=>String(n).padStart(2,'0');
+const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+// Janela: s=9 ano hidrológico (set→ago), s=1 ano civil (jan→dez)
+const winStart=()=>+$('win').value;
+const monthsOf=s=>[...Array(12)].map((_,k)=>((s-1+k)%12)+1);
+const yOff=(m,s)=>(s>1&&m<s)?1:0;
+const yOffH=m=>m>=9?0:1; // KPIs/resumo usam sempre a estação El Niño (out–dez, jan–mar seguinte)
+
+async function getJSON(url){const r=await fetch(url);const j=await r.json();if(!r.ok||j.error)throw new Error(j.reason||('HTTP '+r.status));return j}
+async function loadCity(c){
+  if(cache[c.name])return cache[c.name];
+  let h;
+  for(const back of [2,6,10]){
+    try{h=await getJSON(`https://archive-api.open-meteo.com/v1/archive?latitude=${c.lat}&longitude=${c.lon}&start_date=1981-01-01&end_date=${addDays(today(),-back)}&daily=precipitation_sum,cloud_cover_mean&timezone=${encodeURIComponent(c.tz)}`);break}
+    catch(e){if(back===10)throw e}
+  }
+  const D=h.daily,P=new Map(),C=new Map();let last=null;
+  D.time.forEach((t,i)=>{P.set(t,D.precipitation_sum[i]);C.set(t,D.cloud_cover_mean?.[i]);if(D.precipitation_sum[i]!=null)last=t});
+  const FC=new Map();
+  try{const f=await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}&daily=precipitation_sum&past_days=10&forecast_days=16&timezone=${encodeURIComponent(c.tz)}`);
+    f.daily.time.forEach((t,i)=>{if(t>last&&f.daily.precipitation_sum[i]!=null)FC.set(t,f.daily.precipitation_sum[i])})}catch(e){}
+  return cache[c.name]={P,C,last,FC};
+}
+
+function monthStats(d,y,m,thr,lag,until){
+  const nd=new Date(Date.UTC(y,m,0)).getUTCDate();
+  let rain=0,lost=0,sun=0,cloudy=0,rainy=0,n=0;
+  let prev=d.P.get(iso(new Date(Date.UTC(y,m-1,0))));
+  for(let k=1;k<=nd;k++){
+    const t=`${y}-${pad(m)}-${pad(k)}`;
+    if(until&&t>until)break;
+    const p=d.P.get(t);if(p==null){if(!until)return null;break}
+    n++;rain+=p;
+    if(p>=thr||(lag&&prev!=null&&prev>=25))lost++;
+    if(p>=1)rainy++;else{const c=d.C.get(t);if(c!=null){if(c<=62.5)sun++;else cloudy++}}
+    prev=p;
+  }
+  if(!n)return null;
+  return {rain,lost,sun,cloudy,rainy,n,full:n===nd};
+}
+const KEYS=['rain','lost','sun','cloudy','rainy'];
+function agg(list){const o={};for(const k of KEYS){const v=list.map(s=>s[k]);o[k]=v.length?{m:mean(v),lo:Math.min(...v),hi:Math.max(...v)}:null}return o}
+function windowTable(d,s,thr,lag){
+  return monthsOf(s).map(m=>{
+    const norm=[];for(let y=1991;y<=2020;y++){const st=monthStats(d,y,m,thr,lag);if(st)norm.push(st)}
+    const nino=ANALOGS.map(y=>monthStats(d,y+yOff(m,s),m,thr,lag)).filter(Boolean);
+    const yo=CUR+yOff(m,s),first=`${yo}-${pad(m)}-01`;
+    const obs=first<=d.last?monthStats(d,yo,m,thr,lag,d.last):null;
+    return {m,N:agg(norm),E:agg(nino),O:obs};
+  });
+}
+function periodByAnalog(d,months,thr,lag){
+  return ANALOGS.map(y=>{let s=0;for(const m of months){const st=monthStats(d,y+yOffH(m),m,thr,lag);if(!st)return null;s+=st.lost}return s}).filter(v=>v!=null);
+}
+function periodNormal(d,months,thr,lag,key='lost'){
+  const v=[];for(let y=1991;y<=2019;y++){let s=0,ok=true;for(const m of months){const st=monthStats(d,y+yOffH(m),m,thr,lag);if(!st){ok=false;break}s+=st[key]}if(ok)v.push(s)}return mean(v);
+}
+function periodAnalogMean(d,months,thr,lag,key){
+  return mean(ANALOGS.map(y=>{let s=0;for(const m of months){const st=monthStats(d,y+yOffH(m),m,thr,lag);if(!st)return null;s+=st[key]}return s}).filter(v=>v!=null));
+}
+
+const f=(v,dec=0)=>v==null||isNaN(v)?'—':v.toLocaleString('pt-BR',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+function delta(e,n,good,dec=1,unit=''){
+  if(e==null||n==null)return '—';const dl=e-n,bad=(dl*good)<0,big=Math.abs(dl)>=(unit==='mm'?Math.max(10,0.1*n):1);
+  return `<span class="${big?(bad?'neg':'pos'):''}">${dl>0?'+':''}${f(dl,dec)}</span>`;
+}
+const yLbl=(m,s)=>`${MES[m-1]}${s>1?'/'+String(CUR+yOff(m,s)).slice(2):''}`;
+
+async function render(){
+  const c=cities[$('city').value],thr=+$('thr').value,lag=$('lag').checked,s=winStart();
+  $('status').textContent='Carregando dados históricos…';
+  let d;try{d=await loadCity(c)}catch(e){$('status').textContent='Falha na API Open-Meteo: '+e.message;return}
+  $('status').textContent=`Dados até ${d.last.split('-').reverse().join('/')}`;
+  const rows=windowTable(d,s,thr,lag);
+  const OND=[10,11,12],JFM=[1,2,3];
+  const nO=periodNormal(d,OND,thr,lag),eO=periodByAnalog(d,OND,thr,lag);
+  const nJ=periodNormal(d,JFM,thr,lag),eJ=periodByAnalog(d,JFM,thr,lag);
+  const rN=periodNormal(d,OND,thr,lag,'rain'),rE=periodAnalogMean(d,OND,thr,lag,'rain');
+  const sN=periodNormal(d,OND,thr,lag,'sun'),sE=periodAnalogMean(d,OND,thr,lag,'sun');
+  $('kpis').innerHTML=`
+   <div class="kpi"><div class="l">Dias perdidos out–dez/26</div><div class="v">${f(mean(eO))} <span class="dim" style="font-size:15px">vs ${f(nO)} normal</span></div><div class="s">El Niño: ${delta(mean(eO),nO,-1,0)} dias · faixa ${f(Math.min(...eO))}–${f(Math.max(...eO))}</div></div>
+   <div class="kpi"><div class="l">Dias perdidos jan–mar/27</div><div class="v">${f(mean(eJ))} <span class="dim" style="font-size:15px">vs ${f(nJ)} normal</span></div><div class="s">El Niño: ${delta(mean(eJ),nJ,-1,0)} dias · faixa ${f(Math.min(...eJ))}–${f(Math.max(...eJ))}</div></div>
+   <div class="kpi"><div class="l">Chuva out–dez/26</div><div class="v">${f(rE)} mm</div><div class="s">normal ${f(rN)} mm · ${delta(rE,rN,-1,0,'mm')} mm</div></div>
+   <div class="kpi"><div class="l">Dias de sol out–dez/26</div><div class="v">${f(sE)}</div><div class="s">normal ${f(sN)} · ${delta(sE,sN,1,0)} dias</div></div>`;
+
+  const hdr=`<thead><tr><th></th><th class="grp" colspan="3">Chuva (mm)</th><th class="grp" colspan="3">Dias perdidos</th><th class="grp" colspan="2">Dias de sol</th><th class="grp" colspan="2">Dias nublados</th><th class="grp" colspan="2">Dias de chuva</th><th class="grp" colspan="2">${s===9?'2026-27':'2026'} observado</th></tr>
+   <tr><th>Mês</th><th>Normal</th><th>El Niño</th><th>Dif.</th><th>Normal</th><th>El Niño</th><th>Dif.</th><th>Normal</th><th>El Niño</th><th>Normal</th><th>El Niño</th><th>Normal</th><th>El Niño</th><th>Chuva</th><th>Perdidos</th></tr></thead>`;
+  const body=rows.map(r=>{const N=r.N,E=r.E,O=r.O;return `<tr><td>${yLbl(r.m,s)}</td>
+     <td>${f(N.rain?.m)}</td><td>${f(E.rain?.m)}</td><td>${delta(E.rain?.m,N.rain?.m,-1,0,'mm')}</td>
+     <td>${f(N.lost?.m,1)}</td><td>${f(E.lost?.m,1)}</td><td>${delta(E.lost?.m,N.lost?.m,-1,1)}</td>
+     <td>${f(N.sun?.m,1)}</td><td>${f(E.sun?.m,1)}</td><td>${f(N.cloudy?.m,1)}</td><td>${f(E.cloudy?.m,1)}</td>
+     <td>${f(N.rainy?.m,1)}</td><td>${f(E.rainy?.m,1)}</td>
+     <td>${O?f(O.rain)+(O.full?'':'*'):'—'}</td><td>${O?f(O.lost)+(O.full?'':'*'):'—'}</td></tr>`}).join('');
+  $('tMon').innerHTML=hdr+'<tbody>'+body+'</tbody>'+(rows.some(r=>r.O&&!r.O.full)?'<caption style="caption-side:bottom;text-align:left" class="note">* mês em andamento (parcial)</caption>':'');
+
+  Chart.defaults.color=css('--mute');Chart.defaults.borderColor=css('--line');
+  Chart.defaults.font.family='system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
+  Object.values(charts).forEach(ch=>ch.destroy());
+  drawMonthly(rows,s);
+  drawAcc(d,s);
+}
+
+function drawMonthly(rows,s){
+  const pick=(r,k)=>scen==='O'?(r.O?r.O[k]:null):(r[scen][k]?.m??null);
+  const names={N:'normal',E:'El Niño',O:'2026 obs.'};
+  const ds=[
+    {type:'bar',label:'Dias de sol',data:rows.map(r=>pick(r,'sun')),backgroundColor:COLORS.sun,stack:'ceu',yAxisID:'y',order:3},
+    {type:'bar',label:'Dias nublados (sem chuva)',data:rows.map(r=>pick(r,'cloudy')),backgroundColor:COLORS.cloudy,stack:'ceu',yAxisID:'y',order:3},
+    {type:'bar',label:'Dias de chuva (≥ 1 mm)',data:rows.map(r=>pick(r,'rainy')),backgroundColor:COLORS.rainy,stack:'ceu',yAxisID:'y',order:3},
+    {type:'line',stack:'L1',label:`Dias perdidos (${names[scen]})`,data:rows.map(r=>pick(r,'lost')),borderColor:COLORS.lost,backgroundColor:COLORS.lost,borderWidth:3,pointRadius:4,yAxisID:'yL',order:1},
+    {type:'line',stack:'L2',label:`Chuva mm (${names[scen]})`,data:rows.map(r=>pick(r,'rain')),borderColor:COLORS.rain,backgroundColor:COLORS.rain,borderWidth:3,pointRadius:4,yAxisID:'y1',order:1}
+  ];
+  if(scen!=='N'){
+    ds.push({type:'line',stack:'L3',label:'Dias perdidos (normal)',data:rows.map(r=>r.N.lost?.m??null),borderColor:COLORS.lost,borderDash:[5,4],borderWidth:1.5,pointRadius:0,yAxisID:'yL',order:2});
+    ds.push({type:'line',stack:'L4',label:'Chuva mm (normal)',data:rows.map(r=>r.N.rain?.m??null),borderColor:COLORS.rain,borderDash:[5,4],borderWidth:1.5,pointRadius:0,yAxisID:'y1',order:2});
+  }
+  charts.mon=new Chart($('cMon'),{data:{labels:rows.map(r=>yLbl(r.m,s)),datasets:ds},options:{
+    maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{position:'bottom',labels:{boxWidth:12}},
+      tooltip:{callbacks:{label:it=>{if(it.raw==null)return null;const isMm=it.dataset.yAxisID==='y1';
+        let t=`${it.dataset.label}: ${f(it.raw,isMm?0:1)} ${isMm?'mm':'dias'}`;
+        if(scen==='E'&&it.datasetIndex<5){const k=['sun','cloudy','rainy','lost','rain'][it.datasetIndex];const E=rows[it.dataIndex].E[k];if(E)t+=`  (faixa ${f(E.lo,isMm?0:0)}–${f(E.hi,isMm?0:0)})`}
+        if(scen==='O'&&rows[it.dataIndex].O&&!rows[it.dataIndex].O.full)t+=' (mês parcial)';
+        return t}}}},
+    scales:{x:{stacked:true,grid:{display:false}},
+      y:{stacked:true,min:0,max:31,title:{display:true,text:'dias no mês'}},
+      yL:{stacked:false,display:false,min:0,max:31},
+      y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},title:{display:true,text:'chuva (mm)'}}}}});
+}
+
+function drawAcc(d,s){
+  const start=`${CUR}-${pad(s)}-01`;
+  $('accTitle').textContent=s===9?'Chuva acumulada — set/26 a ago/27 (mm)':'Chuva acumulada — jan a dez/26 (mm)';
+  const dates=[];let t=start;while(dates.length<365){if(t.slice(5)!=='02-29')dates.push(t);t=addDays(t,1)}
+  const shift=(x,y)=>`${+x.slice(0,4)-CUR+y}${x.slice(4)}`;
+  const cum=a=>{let sm=0;return a.map(v=>v==null?null:(sm+=v))};
+  const yEnd=s===1?2020:2019,yearsN=[];
+  for(let y=1991;y<=yEnd;y++){const v=dates.map(x=>d.P.get(shift(x,y)));if(v.every(x=>x!=null))yearsN.push(cum(v))}
+  const q=(arr,p)=>{const b=[...arr].sort((a,b)=>a-b);const i=(b.length-1)*p,lo=Math.floor(i),hi=Math.ceil(i);return b[lo]+(b[hi]-b[lo])*(i-lo)};
+  const med=dates.map((_,i)=>mean(yearsN.map(a=>a[i])));
+  const p10=dates.map((_,i)=>q(yearsN.map(a=>a[i]),.1)),p90=dates.map((_,i)=>q(yearsN.map(a=>a[i]),.9));
+  const obs=cum(dates.map(x=>x<=d.last?(d.P.get(x)??0):null));
+  const li=obs.reduce((k,v,i)=>v!=null?i:k,-1);let acc=li>=0?obs[li]:0;
+  const fc=dates.map((x,i)=>{if(i===li)return acc;if(i>li&&d.FC.has(x)){acc+=d.FC.get(x);return acc}return null});
+  const cols=['--a1','--a2','--a3','--a4'];
+  charts.acc=new Chart($('cAcc'),{type:'line',data:{labels:dates.map(x=>x.slice(8)==='01'?MES[+x.slice(5,7)-1]:''),datasets:[
+    {label:'p90',data:p90,borderWidth:0,pointRadius:0,fill:'+1',backgroundColor:css('--band')},
+    {label:'p10',data:p10,borderWidth:0,pointRadius:0,fill:false},
+    {label:'Normal (média 1991–2020)',data:med,borderColor:css('--norm'),borderWidth:2,pointRadius:0},
+    ...ANALOGS.map((y,k)=>({label:s===9?`${y}-${String(y+1).slice(2)}`:String(y),data:cum(dates.map(x=>d.P.get(shift(x,y)))),borderColor:css(cols[k]),borderWidth:1.5,borderDash:[5,4],pointRadius:0})),
+    {label:s===9?'2026-27 observado':'2026 observado',data:obs,borderColor:css('--obs'),borderWidth:3,pointRadius:0},
+    {label:'Previsão 16 dias',data:fc,borderColor:css('--obs'),borderWidth:3,borderDash:[2,3],pointRadius:0,spanGaps:true}
+  ]},options:{maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{position:'bottom',labels:{boxWidth:12,filter:i=>!['p10','p90'].includes(i.text)}},
+      tooltip:{filter:it=>!['p10','p90'].includes(it.dataset.label),callbacks:{title:it=>dates[it[0].dataIndex].split('-').reverse().slice(0,2).join('/'),label:it=>it.raw==null?null:`${it.dataset.label}: ${f(it.raw)} mm`}}},
+    scales:{x:{grid:{display:false},ticks:{autoSkip:false,maxRotation:0}},y:{beginAtZero:true,title:{display:true,text:'mm acumulados'}}}}});
+}
+
+async function runAll(){
+  const thr=+$('thr').value,lag=$('lag').checked,tb=$('tAll').querySelector('tbody');tb.innerHTML='';
+  for(const [i,c] of cities.entries()){
+    $('allStatus').textContent=`Consultando ${c.name} (${i+1}/9)…`;
+    let d;try{d=await loadCity(c)}catch(e){tb.insertAdjacentHTML('beforeend',`<tr><td>${c.name}/${c.state}</td><td colspan="8">erro: ${e.message}</td></tr>`);continue}
+    const cell=months=>{const n=periodNormal(d,months,thr,lag),e=periodByAnalog(d,months,thr,lag),em=mean(e),dir=Math.sign(em-n),k=e.filter(v=>Math.sign(v-n)===dir).length;
+      return `<td>${f(n)}</td><td>${f(em)} <span class="dim">(${f(Math.min(...e))}–${f(Math.max(...e))})</span></td><td>${delta(em,n,-1,0)}</td><td>${k}/${e.length}</td>`};
+    tb.insertAdjacentHTML('beforeend',`<tr><td>${c.name}/${c.state}</td>${cell([10,11,12])}${cell([1,2,3])}</tr>`);
+  }
+  $('allStatus').textContent=`Concluído com limiar de ${thr} mm${lag?' + dia de secagem':''}. Vermelho = mais dias perdidos que o normal.`;
+}
+
+cities.forEach((c,i)=>$('city').insertAdjacentHTML('beforeend',`<option value="${i}">${c.name} / ${c.state}</option>`));
+['city','thr','lag','win'].forEach(id=>$(id).addEventListener('change',render));
+$('scen').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;scen=b.dataset.k;
+  [...$('scen').children].forEach(x=>x.classList.toggle('on',x===b));render()});
+$('runAll').addEventListener('click',runAll);
+// Abre direto na obra vinda do painel (?city=Nome)
+try{const q=new URLSearchParams(location.search).get('city');const i=cities.findIndex(c=>c.name===q);if(i>=0)$('city').value=i}catch(e){}
+$('city').addEventListener('change',()=>{try{history.replaceState(null,'','?city='+encodeURIComponent(cities[$('city').value].name))}catch(e){}});
+render();
+</script>
+</body>
+</html>
