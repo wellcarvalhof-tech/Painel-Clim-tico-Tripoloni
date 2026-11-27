@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Painel Climático — MT & PR</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="js/previsao-horario.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -205,6 +206,9 @@ footer{text-align:center;font-size:11px;color:var(--text3);padding:16px 0 24px;}
 
   <div class="section-label">🌧 previsão 15 dias — análise multi-modelo</div>
   <div id="fc15Area"><div class="loading-box"><div class="spinner"></div><p>Carregando modelos ECMWF, GFS e ICON…</p></div></div>
+
+  <div class="section-label">🕐 chuva por faixa de horário — próximos 7 dias</div>
+  <div class="card" id="fcHoraArea"></div>
 
   <div class="section-label">dados atuais — ano de <span id="yrLabel">2026</span></div>
   <div id="liveArea"><div class="loading-box"><div class="spinner"></div><p>Buscando dados em tempo real…</p></div></div>
@@ -1160,6 +1164,7 @@ async function selectCity(idx){
   document.getElementById('cmpArea').innerHTML  = spinner;
   document.getElementById('rainArea').innerHTML = spinner;
   renderFC15(city);
+  if(window.PrevisaoHorario) PrevisaoHorario.render(document.getElementById('fcHoraArea'),{nome:city.name,lat:city.lat,lon:city.lon,tz:city.tz});
 
   try {
     const [archiveDaily, forecastDaily] = await Promise.all([
