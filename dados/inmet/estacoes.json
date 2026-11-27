@@ -1,24 +1,28 @@
 {
- "atualizado_em": "2026-11-27T19:23:30+00:00",
+ "atualizado_em": "2026-11-27T21:06:43+00:00",
  "obras": {
   "sinop": {
-   "codigo": "A917",
-   "nome": "Sinop",
+   "codigo": "A904",
+   "nome": "Sorriso",
    "uf": "MT",
-   "lat": -11.98222221,
-   "lon": -55.56611111,
-   "alt": 366.57,
-   "distancia_km": 15.4,
+   "lat": -12.555,
+   "lon": -55.72277777,
+   "alt": 379.31,
+   "distancia_km": 81.0,
+   "cobertura_recente": 1.0,
    "fixada_manualmente": false,
+   "motivo": "mais próxima com ≥ 70% de leitura recente",
+   "cobertura_ate": "2026-10-31",
    "alternativas": [
     {
-     "codigo": "A904",
-     "nome": "Sorriso",
+     "codigo": "A917",
+     "nome": "Sinop",
      "uf": "MT",
-     "lat": -12.555,
-     "lon": -55.72277777,
-     "alt": 379.31,
-     "distancia_km": 81.0
+     "lat": -11.98222221,
+     "lon": -55.56611111,
+     "alt": 366.57,
+     "distancia_km": 15.4,
+     "cobertura_recente": 0.231
     },
     {
      "codigo": "A951",
@@ -27,16 +31,20 @@
      "lat": -12.39694444,
      "lon": -54.92999999,
      "alt": 373.0,
-     "distancia_km": 86.0
-    },
+     "distancia_km": 86.0,
+     "cobertura_recente": 1.0
+    }
+   ],
+   "reservas": [
     {
-     "codigo": "A950",
-     "nome": "Itanhanga",
+     "codigo": "A951",
+     "nome": "Feliz Natal",
      "uf": "MT",
-     "lat": -12.23416666,
-     "lon": -56.60222222,
-     "alt": 350.0,
-     "distancia_km": 126.9
+     "lat": -12.39694444,
+     "lon": -54.92999999,
+     "alt": 373.0,
+     "distancia_km": 86.0,
+     "cobertura_recente": 1.0
     }
    ]
   },
@@ -48,7 +56,10 @@
    "lon": -55.72277777,
    "alt": 379.31,
    "distancia_km": 1.7,
+   "cobertura_recente": 1.0,
    "fixada_manualmente": false,
+   "motivo": "mais próxima com ≥ 70% de leitura recente",
+   "cobertura_ate": "2026-10-31",
    "alternativas": [
     {
      "codigo": "A955",
@@ -57,7 +68,8 @@
      "lat": -13.07499999,
      "lon": -55.91138888,
      "alt": 393.0,
-     "distancia_km": 63.0
+     "distancia_km": 63.0,
+     "cobertura_recente": 1.0
     },
     {
      "codigo": "A917",
@@ -66,7 +78,8 @@
      "lat": -11.98222221,
      "lon": -55.56611111,
      "alt": 366.57,
-     "distancia_km": 64.2
+     "distancia_km": 64.2,
+     "cobertura_recente": 0.231
     },
     {
      "codigo": "A959",
@@ -75,28 +88,75 @@
      "lat": -13.03249999,
      "lon": -55.24194444,
      "alt": 440.0,
-     "distancia_km": 75.4
+     "distancia_km": 75.4,
+     "cobertura_recente": 0.19
+    },
+    {
+     "codigo": "A951",
+     "nome": "Feliz Natal",
+     "uf": "MT",
+     "lat": -12.39694444,
+     "lon": -54.92999999,
+     "alt": 373.0,
+     "distancia_km": 87.2,
+     "cobertura_recente": 1.0
+    },
+    {
+     "codigo": "A950",
+     "nome": "Itanhanga",
+     "uf": "MT",
+     "lat": -12.23416666,
+     "lon": -56.60222222,
+     "alt": 350.0,
+     "distancia_km": 101.7,
+     "cobertura_recente": 1.0
+    }
+   ],
+   "reservas": [
+    {
+     "codigo": "A955",
+     "nome": "Lucas Do Rio Verde",
+     "uf": "MT",
+     "lat": -13.07499999,
+     "lon": -55.91138888,
+     "alt": 393.0,
+     "distancia_km": 63.0,
+     "cobertura_recente": 1.0
+    },
+    {
+     "codigo": "A951",
+     "nome": "Feliz Natal",
+     "uf": "MT",
+     "lat": -12.39694444,
+     "lon": -54.92999999,
+     "alt": 373.0,
+     "distancia_km": 87.2,
+     "cobertura_recente": 1.0
     }
    ]
   },
   "assis": {
-   "codigo": "A842",
-   "nome": "Nova Fatima",
+   "codigo": "A871",
+   "nome": "Japira",
    "uf": "PR",
-   "lat": -23.41527777,
-   "lon": -50.57777777,
-   "alt": 664.31,
-   "distancia_km": 44.5,
+   "lat": -23.77333332,
+   "lon": -50.18055554,
+   "alt": 692.88,
+   "distancia_km": 91.0,
+   "cobertura_recente": 0.604,
    "fixada_manualmente": false,
+   "motivo": "nenhuma estação até 120 km com ≥ 70% de leitura; escolhida a de maior cobertura",
+   "cobertura_ate": "2026-10-31",
    "alternativas": [
     {
-     "codigo": "A871",
-     "nome": "Japira",
+     "codigo": "A842",
+     "nome": "Nova Fatima",
      "uf": "PR",
-     "lat": -23.77333332,
-     "lon": -50.18055554,
-     "alt": 692.88,
-     "distancia_km": 91.0
+     "lat": -23.41527777,
+     "lon": -50.57777777,
+     "alt": 664.31,
+     "distancia_km": 44.5,
+     "cobertura_recente": 0.027
     },
     {
      "codigo": "A835",
@@ -105,7 +165,8 @@
      "lat": -23.40527777,
      "lon": -51.93277777,
      "alt": 548.51,
-     "distancia_km": 94.4
+     "distancia_km": 94.4,
+     "cobertura_recente": 0.057
     },
     {
      "codigo": "A821",
@@ -114,20 +175,35 @@
      "lat": -23.50527777,
      "lon": -49.94638888,
      "alt": 512.67,
-     "distancia_km": 108.5
+     "distancia_km": 108.5,
+     "cobertura_recente": 0.0
     }
-   ]
+   ],
+   "reservas": []
   },
   "irati": {
-   "codigo": "A823",
-   "nome": "Inacio Martins",
+   "codigo": "A819",
+   "nome": "Castro",
    "uf": "PR",
-   "lat": -25.56777777,
-   "lon": -51.07805554,
-   "alt": 1208.85,
-   "distancia_km": 44.3,
+   "lat": -24.77999999,
+   "lon": -50.04638888,
+   "alt": 1016.0,
+   "distancia_km": 97.9,
+   "cobertura_recente": 0.461,
    "fixada_manualmente": false,
+   "motivo": "nenhuma estação até 120 km com ≥ 70% de leitura; escolhida a de maior cobertura",
+   "cobertura_ate": "2026-10-31",
    "alternativas": [
+    {
+     "codigo": "A823",
+     "nome": "Inacio Martins",
+     "uf": "PR",
+     "lat": -25.56777777,
+     "lon": -51.07805554,
+     "alt": 1208.85,
+     "distancia_km": 44.3,
+     "cobertura_recente": 0.177
+    },
     {
      "codigo": "A874",
      "nome": "Sao Mateus Do Sul",
@@ -135,7 +211,8 @@
      "lat": -25.83555555,
      "lon": -50.36888888,
      "alt": 780.21,
-     "distancia_km": 49.5
+     "distancia_km": 49.5,
+     "cobertura_recente": 0.215
     },
     {
      "codigo": "A818",
@@ -144,18 +221,21 @@
      "lat": -25.01083333,
      "lon": -50.85388888,
      "alt": 803.58,
-     "distancia_km": 55.0
+     "distancia_km": 55.0,
+     "cobertura_recente": 0.263
     },
     {
-     "codigo": "A819",
-     "nome": "Castro",
-     "uf": "PR",
-     "lat": -24.77999999,
-     "lon": -50.04638888,
-     "alt": 1016.0,
-     "distancia_km": 97.9
+     "codigo": "A864",
+     "nome": "Major Vieira",
+     "uf": "SC",
+     "lat": -26.3936111,
+     "lon": -50.36333333,
+     "alt": 799.58,
+     "distancia_km": 106.6,
+     "cobertura_recente": 0.103
     }
-   ]
+   ],
+   "reservas": []
   },
   "pitanga": {
    "codigo": "A822",
@@ -165,7 +245,10 @@
    "lon": -51.95388888,
    "alt": 660.0,
    "distancia_km": 41.2,
+   "cobertura_recente": 0.972,
    "fixada_manualmente": false,
+   "motivo": "mais próxima com ≥ 70% de leitura recente",
+   "cobertura_ate": "2026-10-31",
    "alternativas": [
     {
      "codigo": "B804",
@@ -174,7 +257,8 @@
      "lat": -25.37138888,
      "lon": -52.40083333,
      "alt": 889.0,
-     "distancia_km": 93.7
+     "distancia_km": 93.7,
+     "cobertura_recente": 0.529
     },
     {
      "codigo": "A818",
@@ -183,7 +267,8 @@
      "lat": -25.01083333,
      "lon": -50.85388888,
      "alt": 803.58,
-     "distancia_km": 95.6
+     "distancia_km": 95.6,
+     "cobertura_recente": 0.263
     },
     {
      "codigo": "B803",
@@ -192,20 +277,56 @@
      "lat": -24.57083332,
      "lon": -52.80027777,
      "alt": 598.0,
-     "distancia_km": 107.2
+     "distancia_km": 107.2,
+     "cobertura_recente": 0.019
+    },
+    {
+     "codigo": "A823",
+     "nome": "Inacio Martins",
+     "uf": "PR",
+     "lat": -25.56777777,
+     "lon": -51.07805554,
+     "alt": 1208.85,
+     "distancia_km": 113.0,
+     "cobertura_recente": 0.177
+    }
+   ],
+   "reservas": [
+    {
+     "codigo": "B804",
+     "nome": "Laranjeiras Do Sul",
+     "uf": "PR",
+     "lat": -25.37138888,
+     "lon": -52.40083333,
+     "alt": 889.0,
+     "distancia_km": 93.7,
+     "cobertura_recente": 0.529
     }
    ]
   },
   "palmeira": {
-   "codigo": "A874",
-   "nome": "Sao Mateus Do Sul",
+   "codigo": "A807",
+   "nome": "Curitiba",
    "uf": "PR",
-   "lat": -25.83555555,
-   "lon": -50.36888888,
-   "alt": 780.21,
-   "distancia_km": 58.3,
+   "lat": -25.4486111,
+   "lon": -49.23055554,
+   "alt": 922.91,
+   "distancia_km": 77.3,
+   "cobertura_recente": 1.0,
    "fixada_manualmente": false,
+   "motivo": "mais próxima com ≥ 70% de leitura recente",
+   "cobertura_ate": "2026-10-31",
    "alternativas": [
+    {
+     "codigo": "A874",
+     "nome": "Sao Mateus Do Sul",
+     "uf": "PR",
+     "lat": -25.83555555,
+     "lon": -50.36888888,
+     "alt": 780.21,
+     "distancia_km": 58.3,
+     "cobertura_recente": 0.215
+    },
     {
      "codigo": "A819",
      "nome": "Castro",
@@ -213,16 +334,8 @@
      "lat": -24.77999999,
      "lon": -50.04638888,
      "alt": 1016.0,
-     "distancia_km": 72.4
-    },
-    {
-     "codigo": "A807",
-     "nome": "Curitiba",
-     "uf": "PR",
-     "lat": -25.4486111,
-     "lon": -49.23055554,
-     "alt": 922.91,
-     "distancia_km": 77.3
+     "distancia_km": 72.4,
+     "cobertura_recente": 0.461
     },
     {
      "codigo": "B806",
@@ -231,20 +344,76 @@
      "lat": -25.32249999,
      "lon": -49.15777777,
      "alt": 950.0,
-     "distancia_km": 85.5
+     "distancia_km": 85.5,
+     "cobertura_recente": 0.788
+    },
+    {
+     "codigo": "A818",
+     "nome": "Ivai",
+     "uf": "PR",
+     "lat": -25.01083333,
+     "lon": -50.85388888,
+     "alt": 803.58,
+     "distancia_km": 97.7,
+     "cobertura_recente": 0.263
+    },
+    {
+     "codigo": "A862",
+     "nome": "Rio Negrinho",
+     "uf": "SC",
+     "lat": -26.2486111,
+     "lon": -49.57416666,
+     "alt": 856.0,
+     "distancia_km": 100.5,
+     "cobertura_recente": 0.71
+    }
+   ],
+   "reservas": [
+    {
+     "codigo": "A819",
+     "nome": "Castro",
+     "uf": "PR",
+     "lat": -24.77999999,
+     "lon": -50.04638888,
+     "alt": 1016.0,
+     "distancia_km": 72.4,
+     "cobertura_recente": 0.461
+    },
+    {
+     "codigo": "B806",
+     "nome": "Colombo",
+     "uf": "PR",
+     "lat": -25.32249999,
+     "lon": -49.15777777,
+     "alt": 950.0,
+     "distancia_km": 85.5,
+     "cobertura_recente": 0.788
     }
    ]
   },
   "maringa": {
-   "codigo": "A835",
-   "nome": "Maringa",
+   "codigo": "A869",
+   "nome": "Cidade Gaucha",
    "uf": "PR",
-   "lat": -23.40527777,
-   "lon": -51.93277777,
-   "alt": 548.51,
-   "distancia_km": 1.7,
+   "lat": -23.35916666,
+   "lon": -52.93194443,
+   "alt": 365.79,
+   "distancia_km": 102.5,
+   "cobertura_recente": 0.999,
    "fixada_manualmente": false,
+   "motivo": "mais próxima com ≥ 70% de leitura recente",
+   "cobertura_ate": "2026-10-31",
    "alternativas": [
+    {
+     "codigo": "A835",
+     "nome": "Maringa",
+     "uf": "PR",
+     "lat": -23.40527777,
+     "lon": -51.93277777,
+     "alt": 548.51,
+     "distancia_km": 1.7,
+     "cobertura_recente": 0.057
+    },
     {
      "codigo": "A850",
      "nome": "Paranapoema",
@@ -252,16 +421,8 @@
      "lat": -22.65833333,
      "lon": -52.13444444,
      "alt": 308.7,
-     "distancia_km": 87.2
-    },
-    {
-     "codigo": "A869",
-     "nome": "Cidade Gaucha",
-     "uf": "PR",
-     "lat": -23.35916666,
-     "lon": -52.93194443,
-     "alt": 365.79,
-     "distancia_km": 102.5
+     "distancia_km": 87.2,
+     "cobertura_recente": 0.062
     },
     {
      "codigo": "A822",
@@ -270,7 +431,20 @@
      "lat": -24.43388888,
      "lon": -51.95388888,
      "alt": 660.0,
-     "distancia_km": 112.8
+     "distancia_km": 112.8,
+     "cobertura_recente": 0.972
+    }
+   ],
+   "reservas": [
+    {
+     "codigo": "A822",
+     "nome": "Nova Tebas",
+     "uf": "PR",
+     "lat": -24.43388888,
+     "lon": -51.95388888,
+     "alt": 660.0,
+     "distancia_km": 112.8,
+     "cobertura_recente": 0.972
     }
    ]
   },
@@ -282,7 +456,10 @@
    "lon": -51.95388888,
    "alt": 660.0,
    "distancia_km": 34.5,
+   "cobertura_recente": 0.972,
    "fixada_manualmente": false,
+   "motivo": "mais próxima com ≥ 70% de leitura recente",
+   "cobertura_ate": "2026-10-31",
    "alternativas": [
     {
      "codigo": "A835",
@@ -291,7 +468,8 @@
      "lat": -23.40527777,
      "lon": -51.93277777,
      "alt": 548.51,
-     "distancia_km": 97.4
+     "distancia_km": 97.4,
+     "cobertura_recente": 0.057
     },
     {
      "codigo": "A818",
@@ -300,7 +478,8 @@
      "lat": -25.01083333,
      "lon": -50.85388888,
      "alt": 803.58,
-     "distancia_km": 118.9
+     "distancia_km": 118.9,
+     "cobertura_recente": 0.263
     },
     {
      "codigo": "B803",
@@ -309,9 +488,11 @@
      "lat": -24.57083332,
      "lon": -52.80027777,
      "alt": 598.0,
-     "distancia_km": 118.9
+     "distancia_km": 118.9,
+     "cobertura_recente": 0.019
     }
-   ]
+   ],
+   "reservas": []
   },
   "miranda-do-norte": {
    "codigo": "A220",
@@ -321,36 +502,12 @@
    "lon": -44.79499999,
    "alt": 22.33,
    "distancia_km": 67.8,
+   "cobertura_recente": 0.0,
    "fixada_manualmente": false,
-   "alternativas": [
-    {
-     "codigo": "A255",
-     "nome": "Ze Doca",
-     "uf": "MA",
-     "lat": -3.26916666,
-     "lon": -45.65111111,
-     "alt": 45.5,
-     "distancia_km": 129.4
-    },
-    {
-     "codigo": "A203",
-     "nome": "Sao Luis",
-     "uf": "MA",
-     "lat": -2.52666666,
-     "lon": -44.21361111,
-     "alt": 54.8,
-     "distancia_km": 133.9
-    },
-    {
-     "codigo": "A206",
-     "nome": "Chapadinha",
-     "uf": "MA",
-     "lat": -3.74277777,
-     "lon": -43.35222222,
-     "alt": 104.0,
-     "distancia_km": 134.2
-    }
-   ]
+   "motivo": "sem leitura recente nas estações próximas; escolhida a mais próxima",
+   "cobertura_ate": "2026-10-31",
+   "alternativas": [],
+   "reservas": []
   }
  }
 }
