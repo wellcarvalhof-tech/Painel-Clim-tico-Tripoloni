@@ -27,6 +27,14 @@ Sem token, o painel funciona com o histórico, atualizado uma vez por mês (o IN
 
 A escolha automática pega a estação mais próxima (até 120 km) cujo pluviômetro teve leitura em pelo menos 70% das horas nos últimos 6 meses; muitas estações passam meses sem medir chuva. O resultado fica em `dados/inmet/estacoes.json`, com distância, cobertura e alternativas. Para forçar outra estação, preencha `"estacao": "A8xx"` na obra em `dados/obras.json` e rode o histórico com **Refazer a escolha** marcado.
 
+### Dias sem leitura (estações reserva)
+
+Cada obra tem até 2 estações reserva (até 120 km). Quando o pluviômetro da estação principal não registra um dia, o painel usa a reserva mais próxima que registrou. A página mostra quanto do período veio de cada estação e quanto ficou sem leitura.
+
+### Previsão por horário
+
+A tabela "Próximos 7 dias" consulta o Open-Meteo ao abrir a página (ECMWF IFS HRES, GFS e ICON, de hora em hora) e mostra, por faixa do dia, quantos modelos preveem chuva ≥ 1 mm. Não precisa de automação nem de token.
+
 ### Horário
 
 O INMET grava em UTC. O script converte para o horário civil atual da obra (MT = UTC−4; PR e MA = UTC−3) e atribui a chuva à hora em que ela começou.

@@ -196,6 +196,7 @@ def membros_csv(z):
     return [n for n in z.namelist() if n.upper().endswith(".CSV")]
 
 
+N_RESERVAS = 2         # estações reserva por obra para completar dias sem leitura
 RAIO_KM = 120          # só considera estações até esta distância da obra
 MIN_COBERTURA = 0.70   # fração mínima de horas com leitura de chuva nos últimos 180 dias do ZIP
 
@@ -266,10 +267,19 @@ def escolher_estacoes(z, estacoes_atuais, reselecionar):
         escolhida["motivo"] = motivo
         escolhida["cobertura_ate"] = fim_zip.date().isoformat() if fim_zip else None
         escolhida["alternativas"] = [resumo(c) for c in no_raio[:6] if c["codigo"] != escolha["codigo"]][:5]
+        # reservas: completam os dias em que a estação principal não leu chuva
+        outras = [c for c in no_raio if c["codigo"] != escolha["codigo"]]
+        if cob:
+            outras = [c for c in outras if cob.get(c["codigo"], 0) >= 0.30]
+        escolhida["reservas"] = [resumo(c) for c in outras[:N_RESERVAS]]
         resultado[o["slug"]] = escolhida
         log(f"{o['nome']}: {escolhida['codigo']} {escolhida['nome']} a {escolhida['distancia_km']} km, "
             f"leitura recente {escolhida.get('cobertura_recente', 0):.0%} ({motivo})")
     return resultado
+
+
+def todos_codigos(estacoes):
+    return {e["codigo"] for e in estacoes.values()} | {r["codigo"] for e in estacoes.values() for r in e.get("reservas", [])}
 
 
 def cmd_historico(args):
@@ -287,7 +297,7 @@ def cmd_historico(args):
                 if not estacoes or reselecionar or any(o["slug"] not in estacoes for o in obras()):
                     estacoes = escolher_estacoes(z, estacoes, reselecionar)
                     reselecionar = False
-                codigos = {e["codigo"] for e in estacoes.values()}
+                codigos = todos_codigos(estacoes)
                 for nome in membros_csv(z):
                     m = re.search(r"_(A\d{3}|[A-Z]\d{3})_", nome.upper())
                     cod = m.group(1) if m else None
@@ -339,7 +349,7 @@ def cmd_api(args):
     fim = dt.date.today()
     ini = fim - dt.timedelta(days=args.dias)
     status = {"executado_em": agora(), "com_token": bool(token), "estacoes": {}}
-    for cod in sorted({e["codigo"] for e in estacoes.values()}):
+    for cod in sorted(todos_codigos(estacoes)):
         if token:
             url = f"{URL_API}/token/estacao/{ini}/{fim}/{cod}/{token}"
         else:
@@ -403,30 +413,47 @@ def carregar_horas(cod):
     return horas, anos, fim_zip
 
 
+def dias_locais(horas, off):
+    """{data local: {hora local de início: mm}}"""
+    dias = {}
+    for t_fim, v in horas.items():
+        t = t_fim - dt.timedelta(hours=1) + off
+        dias.setdefault(t.date(), {})[t.hour] = v
+    return dias
+
+
 def cmd_montar(args=None):
     estacoes = ler_json(ARQ_ESTACOES, {}).get("obras", {})
     for o in obras():
         est = estacoes.get(o["slug"])
         if not est:
             continue
-        horas, anos_zip, fim_zip = carregar_horas(est["codigo"])
-        if not horas:
-            log(f"{o['nome']}: sem dados da estação {est['codigo']}")
-            continue
         off = dt.timedelta(hours=o["utc"])
-        # chuva por (dia local, hora local de início)
-        local = {}
-        for t_fim, v in horas.items():
-            ini_local = t_fim - dt.timedelta(hours=1) + off
-            local[ini_local] = v
-        dias = {}
-        for t, v in local.items():
-            dias.setdefault(t.date(), {})[t.hour] = v
-        d0, d1 = min(dias), max(dias)
-        diario, n = [], (d1 - d0).days + 1
+        prioridade = [est] + est.get("reservas", [])
+        dias_est = []
+        for i, e in enumerate(prioridade):
+            h_e, a_e, f_e = carregar_horas(e["codigo"])
+            if i == 0:
+                horas, anos_zip, fim_zip = h_e, a_e, f_e
+            dias_est.append(dias_locais(h_e, off))
+        if not any(dias_est):
+            log(f"{o['nome']}: sem dados das estações {[e['codigo'] for e in prioridade]}")
+            continue
+        dias = dias_est[0]
+        d0 = min(min(d) for d in dias_est if d); d1 = max(max(d) for d in dias_est if d)
+        diario, fonte, n = [], [], (d1 - d0).days + 1
+        cont = [0] * len(prioridade)
         for i in range(n):
-            hs = dias.get(d0 + dt.timedelta(days=i), {})
-            diario.append(round(sum(hs.values()), 1) if len(hs) >= MIN_HORAS_DIA else None)
+            dia = d0 + dt.timedelta(days=i)
+            val = src = None
+            for k, D in enumerate(dias_est):
+                hs = D.get(dia)
+                if hs and len(hs) >= MIN_HORAS_DIA:
+                    val, src = round(sum(hs.values()), 1), k
+                    break
+            diario.append(val); fonte.append(src)
+            if src is not None:
+                cont[src] += 1
         # climatologia: só anos do ZIP (série consolidada pelo INMET)
         f02 = [[0] * 24 for _ in range(12)]; nh = [[0] * 24 for _ in range(12)]; mm_h = [[0.0] * 24 for _ in range(12)]
         jn = [[0] * len(JANELAS) for _ in range(12)]; j1 = [[0] * len(JANELAS) for _ in range(12)]
@@ -452,7 +479,9 @@ def cmd_montar(args=None):
                                                  "motivo", "cobertura_recente", "cobertura_ate", "alternativas")},
             "fonte": "INMET — estações automáticas (dados históricos anuais + API)",
             "zip_ate": (fim_zip + off - dt.timedelta(hours=1)).date().isoformat() if fim_zip else None,
-            "diario": {"inicio": d0.isoformat(), "fim": d1.isoformat(), "cobertura": round(validos / n, 3), "mm": diario},
+            "diario": {"inicio": d0.isoformat(), "fim": d1.isoformat(), "cobertura": round(validos / n, 3), "mm": diario, "fonte": fonte},
+            "fontes": [{"codigo": e["codigo"], "nome": e.get("nome"), "distancia_km": e.get("distancia_km"), "dias": cont[k]}
+                       for k, e in enumerate(prioridade)],
             "clima": {
                 "anos": sorted(anos_zip),
                 "horas": {"n": nh, "freq02": f02, "mm": [[round(x, 1) for x in r] for r in mm_h]},
