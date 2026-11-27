@@ -1,0 +1,47 @@
+name: INMET — atualização diária
+
+# Busca os últimos dias pela API do INMET para cada estação escolhida.
+# O token fica como segredo do repositório (Settings → Secrets and variables → Actions → INMET_TOKEN)
+# e nunca aparece no site. Sem token, tenta a rota pública; se o INMET recusar, termina sem erro
+# e o painel segue com o histórico (atualizado todo mês pelo outro workflow).
+
+on:
+  workflow_dispatch:
+    inputs:
+      dias:
+        description: "Quantos dias para trás buscar"
+        default: "30"
+        required: false
+  schedule:
+    - cron: "23 9 * * *"    # todo dia, 06:23 em Brasília
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dados-inmet
+  cancel-in-progress: false
+
+jobs:
+  diario:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Buscar dias recentes
+        env:
+          INMET_TOKEN: ${{ secrets.INMET_TOKEN }}
+          DIAS: ${{ github.event.inputs.dias || '30' }}
+        run: python3 scripts/inmet.py api --dias "$DIAS"
+      - name: Gravar no repositório
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dados/
+          if git diff --cached --quiet; then echo "Sem mudanças"; exit 0; fi
+          git commit -m "Dados INMET: atualização diária"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push

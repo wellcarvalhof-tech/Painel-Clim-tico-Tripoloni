@@ -1,0 +1,54 @@
+name: INMET — histórico anual
+
+# Baixa os arquivos anuais de dados históricos do INMET (não precisa de token),
+# escolhe a estação automática mais próxima de cada obra e grava os dados em dados/inmet/.
+# Primeira vez: Actions → "INMET — histórico anual" → Run workflow (padrão 2008-2026).
+# Depois roda sozinho todo dia 6 para atualizar o ano corrente.
+
+on:
+  workflow_dispatch:
+    inputs:
+      anos:
+        description: "Anos a processar (ex.: 2008-2026). Vazio = só o ano atual."
+        default: "2008-2026"
+        required: false
+      reselecionar:
+        description: "Refazer a escolha da estação mais próxima"
+        type: boolean
+        default: false
+  schedule:
+    - cron: "17 10 6 * *"   # dia 6 de cada mês, 07:17 em Brasília
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dados-inmet
+  cancel-in-progress: false
+
+jobs:
+  historico:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Processar anos
+        env:
+          ANOS: ${{ github.event.inputs.anos }}
+          RESELECIONAR: ${{ github.event.inputs.reselecionar }}
+        run: |
+          set -- historico --anos "$ANOS"
+          if [ "$RESELECIONAR" = "true" ]; then set -- "$@" --reselecionar; fi
+          python3 scripts/inmet.py "$@"
+      - name: Gravar no repositório
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dados/
+          if git diff --cached --quiet; then echo "Sem mudanças"; exit 0; fi
+          git commit -m "Dados INMET: histórico atualizado"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push
