@@ -25,7 +25,7 @@ Sem token, o painel funciona com o histórico, atualizado uma vez por mês (o IN
 
 ### Estação de cada obra
 
-A escolha automática fica em `dados/inmet/estacoes.json`, com a distância e as 3 alternativas mais próximas. Para forçar outra estação, preencha `"estacao": "A8xx"` na obra em `dados/obras.json` e rode o histórico com **Refazer a escolha** marcado.
+A escolha automática pega a estação mais próxima (até 120 km) cujo pluviômetro teve leitura em pelo menos 70% das horas nos últimos 6 meses; muitas estações passam meses sem medir chuva. O resultado fica em `dados/inmet/estacoes.json`, com distância, cobertura e alternativas. Para forçar outra estação, preencha `"estacao": "A8xx"` na obra em `dados/obras.json` e rode o histórico com **Refazer a escolha** marcado.
 
 ### Horário
 

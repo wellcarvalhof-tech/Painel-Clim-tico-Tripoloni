@@ -402,8 +402,9 @@ const dBR=t=>t?t.split('-').reverse().join('/'):'—';
 function renderReal(c,s,thr,lag,rows,I,PV){
   const k=slug(c);let info='';
   if(I){const e=I.estacao,anos=I.clima.anos;
-    info+=`<b>Estação INMET ${e.codigo} — ${e.nome||''}/${e.uf||''}</b>, a <b>${f(e.distancia_km,1)} km</b> da obra · dados até ${dBR(I.last)} · média com ${anos.length} anos (${anos[0]}–${anos[anos.length-1]}).`;
-    if(e.distancia_km>30)info+=`<div class="alerta">Estação a ${f(e.distancia_km)} km: chuva de verão é muito localizada. Use como referência regional; para pleito de prazo, o pluviômetro do canteiro é a prova principal.${e.alternativas?.length?' Outras estações próximas: '+e.alternativas.map(a=>`${a.codigo} ${a.nome} (${f(a.distancia_km)} km)`).join(', ')+'.':''}</div>`;
+    info+=`<b>Estação INMET ${e.codigo} — ${e.nome||''}/${e.uf||''}</b>, a <b>${f(e.distancia_km,1)} km</b> da obra · dados até ${dBR(I.last)} · média com ${anos.length} anos (${anos[0]}–${anos[anos.length-1]})${e.cobertura_recente!=null?` · pluviômetro da estação com leitura em ${f(e.cobertura_recente*100)}% das horas nos últimos 6 meses`:''}.${e.motivo?`<div class="dim">Critério: ${e.motivo}.</div>`:''}`;
+    if(e.cobertura_recente!=null&&e.cobertura_recente<0.7)info+=`<div class="alerta">A estação teve muitas horas sem leitura de chuva nos últimos meses: o realizado pode estar subestimado.</div>`;
+    if(e.distancia_km>30)info+=`<div class="alerta">Estação a ${f(e.distancia_km)} km: chuva de verão é muito localizada. Use como referência regional; para pleito de prazo, o pluviômetro do canteiro é a prova principal.${e.alternativas?.length?' Outras estações próximas: '+e.alternativas.map(a=>`${a.codigo} ${a.nome} (${f(a.distancia_km)} km${a.cobertura_recente!=null?`, leitura ${f(a.cobertura_recente*100)}%`:''})`).join(', ')+'.':''}</div>`;
   }else info+=`<div class="alerta">Dados do INMET ainda não gerados para esta obra. Rode a automação <b>INMET — histórico anual</b> no GitHub (aba Actions).</div>`;
   info+=PV?`<div>Pluviômetro do canteiro: leituras de ${dBR(PV.first)} a ${dBR(PV.last)}.</div>`
           :`<div class="dim">Sem pluviômetro cadastrado. Para incluir: crie <code>dados/pluviometro/${k}.csv</code> no GitHub (modelo em <code>dados/pluviometro/MODELO.csv</code>).</div>`;

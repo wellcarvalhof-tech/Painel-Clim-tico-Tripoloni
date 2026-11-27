@@ -196,8 +196,18 @@ def membros_csv(z):
     return [n for n in z.namelist() if n.upper().endswith(".CSV")]
 
 
+RAIO_KM = 120          # só considera estações até esta distância da obra
+MIN_COBERTURA = 0.70   # fração mínima de horas com leitura de chuva nos últimos 180 dias do ZIP
+
+
 def escolher_estacoes(z, estacoes_atuais, reselecionar):
-    """Lê o cabeçalho de todas as estações do ZIP e escolhe a mais próxima de cada obra."""
+    """Escolhe, para cada obra, a estação mais próxima QUE ESTEJA MEDINDO CHUVA.
+
+    Muitas estações automáticas passam meses com o pluviômetro sem leitura. A regra é:
+    a mais próxima (até RAIO_KM) com pelo menos MIN_COBERTURA de horas com leitura nos
+    últimos 180 dias do arquivo mais recente; se nenhuma atingir, a de maior cobertura;
+    se nenhuma tiver leitura, a mais próxima.
+    """
     cands = []
     for nome in membros_csv(z):
         with z.open(nome) as f:
@@ -208,27 +218,57 @@ def escolher_estacoes(z, estacoes_atuais, reselecionar):
             cands.append(meta)
     log(f"{len(cands)} estações no ZIP")
     resultado = dict(estacoes_atuais or {})
-    for o in obras():
-        atual = resultado.get(o["slug"])
-        if atual and not reselecionar and not o.get("estacao"):
-            continue
-        ordem = sorted(cands, key=lambda c: km(o["lat"], o["lon"], c["lat"], c["lon"]))
-        if o.get("estacao"):
-            fixa = [c for c in ordem if c["codigo"] == o["estacao"].upper()]
-            if fixa:
-                ordem = fixa + [c for c in ordem if c["codigo"] != o["estacao"].upper()]
-            else:
-                log(f"AVISO: estação {o['estacao']} de {o['nome']} não está no ZIP; usando a mais próxima")
+    pendentes = [o for o in obras() if o.get("estacao") or reselecionar or o["slug"] not in resultado]
+    # cobertura recente de chuva das estações próximas das obras pendentes
+    perto = {c["codigo"]: c for o in pendentes for c in cands if km(o["lat"], o["lon"], c["lat"], c["lon"]) <= RAIO_KM}
+    series = {}
+    for cod, c in perto.items():
+        with z.open(c["arquivo"]) as f:
+            series[cod] = ler_csv(f.read().decode("latin-1", "replace"))[1]
+    fim_zip = max((max(sr) for sr in series.values() if sr), default=None)
+    cob = {}
+    if fim_zip:
+        ini_janela = max(dt.datetime(fim_zip.year, 1, 1, 0), fim_zip - dt.timedelta(days=180))
+        total = int((fim_zip - ini_janela).total_seconds() // 3600) + 1
+        for cod, sr in series.items():
+            cob[cod] = sum(1 for t, v in sr.items() if v is not None and ini_janela <= t <= fim_zip) / total
+        log(f"Cobertura medida de {ini_janela:%d/%m/%Y} a {fim_zip:%d/%m/%Y}")
+
+    for o in pendentes:
+        dist = lambda c: km(o["lat"], o["lon"], c["lat"], c["lon"])
+        ordem = sorted(cands, key=dist)
         if not ordem:
             continue
+        no_raio = [c for c in ordem if dist(c) <= RAIO_KM]
+        fixa = [c for c in ordem if o.get("estacao") and c["codigo"] == o["estacao"].upper()]
+        if o.get("estacao") and not fixa:
+            log(f"AVISO: estação {o['estacao']} de {o['nome']} não está no ZIP; escolhendo automaticamente")
+        if fixa:
+            escolha, motivo = fixa[0], "fixada manualmente em dados/obras.json"
+        else:
+            boas = [c for c in no_raio if cob.get(c["codigo"], 0) >= MIN_COBERTURA]
+            if boas:
+                escolha, motivo = boas[0], f"mais próxima com ≥ {MIN_COBERTURA:.0%} de leitura recente"
+            elif any(cob.get(c["codigo"], 0) > 0 for c in no_raio):
+                escolha = max(no_raio, key=lambda c: cob.get(c["codigo"], 0))
+                motivo = f"nenhuma estação até {RAIO_KM} km com ≥ {MIN_COBERTURA:.0%} de leitura; escolhida a de maior cobertura"
+            else:
+                escolha, motivo = ordem[0], "sem leitura recente nas estações próximas; escolhida a mais próxima"
+
         def resumo(c):
-            return {"codigo": c["codigo"], "nome": c.get("nome"), "uf": c.get("uf"), "lat": c["lat"], "lon": c["lon"],
-                    "alt": c.get("alt"), "distancia_km": round(km(o["lat"], o["lon"], c["lat"], c["lon"]), 1)}
-        escolhida = resumo(ordem[0])
-        escolhida["fixada_manualmente"] = bool(o.get("estacao")) and ordem[0]["codigo"] == o["estacao"].upper()
-        escolhida["alternativas"] = [resumo(c) for c in ordem[1:4]]
+            r = {"codigo": c["codigo"], "nome": c.get("nome"), "uf": c.get("uf"), "lat": c["lat"], "lon": c["lon"],
+                 "alt": c.get("alt"), "distancia_km": round(dist(c), 1)}
+            if c["codigo"] in cob:
+                r["cobertura_recente"] = round(cob[c["codigo"]], 3)
+            return r
+        escolhida = resumo(escolha)
+        escolhida["fixada_manualmente"] = bool(fixa)
+        escolhida["motivo"] = motivo
+        escolhida["cobertura_ate"] = fim_zip.date().isoformat() if fim_zip else None
+        escolhida["alternativas"] = [resumo(c) for c in no_raio[:6] if c["codigo"] != escolha["codigo"]][:5]
         resultado[o["slug"]] = escolhida
-        log(f"{o['nome']}: {escolhida['codigo']} {escolhida['nome']} a {escolhida['distancia_km']} km")
+        log(f"{o['nome']}: {escolhida['codigo']} {escolhida['nome']} a {escolhida['distancia_km']} km, "
+            f"leitura recente {escolhida.get('cobertura_recente', 0):.0%} ({motivo})")
     return resultado
 
 
@@ -408,7 +448,8 @@ def cmd_montar(args=None):
         validos = sum(1 for v in diario if v is not None)
         saida = {
             "obra": o["nome"], "slug": o["slug"], "utc": o["utc"], "atualizado_em": agora(),
-            "estacao": {k: est.get(k) for k in ("codigo", "nome", "uf", "lat", "lon", "alt", "distancia_km", "fixada_manualmente", "alternativas")},
+            "estacao": {k: est.get(k) for k in ("codigo", "nome", "uf", "lat", "lon", "alt", "distancia_km", "fixada_manualmente",
+                                                 "motivo", "cobertura_recente", "cobertura_ate", "alternativas")},
             "fonte": "INMET — estações automáticas (dados históricos anuais + API)",
             "zip_ate": (fim_zip + off - dt.timedelta(hours=1)).date().isoformat() if fim_zip else None,
             "diario": {"inicio": d0.isoformat(), "fim": d1.isoformat(), "cobertura": round(validos / n, 3), "mm": diario},
