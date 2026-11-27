@@ -1,0 +1,14 @@
+{
+  "_leia": "Lista de obras usada pela automação do INMET. 'utc' = fuso civil atual (MT = -4; PR e MA = -3). Para forçar uma estação específica, preencha 'estacao' com o código (ex.: \"A843\"); deixe null para escolher a mais próxima automaticamente.",
+  "obras": [
+    {"slug": "sinop",            "nome": "Sinop",            "uf": "MT", "lat": -11.86, "lon": -55.50, "utc": -4, "estacao": null},
+    {"slug": "sorriso",          "nome": "Sorriso",          "uf": "MT", "lat": -12.54, "lon": -55.72, "utc": -4, "estacao": null},
+    {"slug": "assis",            "nome": "Assis",            "uf": "PR", "lat": -23.47, "lon": -51.01, "utc": -3, "estacao": null},
+    {"slug": "irati",            "nome": "Irati",            "uf": "PR", "lat": -25.47, "lon": -50.65, "utc": -3, "estacao": null},
+    {"slug": "pitanga",          "nome": "Pitanga",          "uf": "PR", "lat": -24.76, "lon": -51.76, "utc": -3, "estacao": null},
+    {"slug": "palmeira",         "nome": "Palmeira",         "uf": "PR", "lat": -25.43, "lon": -50.00, "utc": -3, "estacao": null},
+    {"slug": "maringa",          "nome": "Maringá",          "uf": "PR", "lat": -23.42, "lon": -51.93, "utc": -3, "estacao": null},
+    {"slug": "ivaipora",         "nome": "Ivaiporã",         "uf": "PR", "lat": -24.25, "lon": -51.68, "utc": -3, "estacao": null},
+    {"slug": "miranda-do-norte", "nome": "Miranda do Norte", "uf": "MA", "lat": -3.68,  "lon": -44.56, "utc": -3, "estacao": null}
+  ]
+}

@@ -46,6 +46,11 @@ details{margin-top:8px}summary{cursor:pointer;color:var(--mute);font-size:13px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
 .seg button{border:0;border-radius:0;padding:6px 10px}.seg button.on{background:var(--obs);color:#fff}
 .dim{color:var(--mute)}
+.est{font-size:13.5px;line-height:1.55;margin:0 0 10px}.est b{font-weight:650}
+.alerta{background:var(--warn);border-radius:7px;padding:8px 10px;font-size:13px;margin:8px 0}
+.heat td{text-align:center;min-width:64px;font-weight:600}.heat td:first-child{text-align:left;font-weight:400}
+.heat th{text-align:center}.heat td:last-child,.heat th:last-child{border-left:2px solid var(--line)}.heat tr.turno td{border-top:2px solid var(--line)}
+code{font-size:12.5px;background:var(--band);padding:1px 5px;border-radius:4px}
 .topbar{background:#0d2b54;color:#fff;padding:12px 16px;display:flex;gap:14px;align-items:center;font-size:14px;position:sticky;top:0;z-index:10}
 .topbar a{color:#fff;text-decoration:none;font-weight:600}.topbar a:hover{text-decoration:underline}
 .topbar span{opacity:.6}
@@ -55,7 +60,7 @@ details{margin-top:8px}summary{cursor:pointer;color:var(--mute);font-size:13px}
 <div class="topbar"><a href="./">← Painel Climático</a><span>Clima × Obra</span></div>
 <div class="wrap">
   <h1>Clima × Obra — impacto do El Niño 2026-27</h1>
-  <p class="sub">Chuva, dias perdidos, dias de sol e nublados: <b>normal</b> (1991–2020) × <b>anos de El Niño forte</b> (1982-83, 1997-98, 2015-16, 2023-24) × <b>2026 observado</b>. Dados Open-Meteo (ERA5, CC BY 4.0).</p>
+  <p class="sub">Chuva, dias perdidos, dias de sol e nublados: <b>normal</b> (1991–2020) × <b>anos de El Niño forte</b> (1982-83, 1997-98, 2015-16, 2023-24) × <b>2026 observado</b>. Cenários: Open-Meteo (ERA5, CC BY 4.0). Realizado e horário da chuva: estações automáticas do INMET e pluviômetro do canteiro.</p>
 
   <div class="card enso">
     <h2>O que as agências preveem (consultado em 01/10/2026)</h2>
@@ -83,6 +88,14 @@ details{margin-top:8px}summary{cursor:pointer;color:var(--mute);font-size:13px}
   </div>
 
   <div class="card">
+    <h2>Realizado — estação INMET e pluviômetro do canteiro</h2>
+    <p class="lead">Chuva medida, comparada com a média da <b>própria estação</b> (mesma fonte, sem misturar com modelo). A coluna ERA5 mostra a estimativa usada nos cenários, para você ver o quanto ela erra nesta obra.</p>
+    <div id="realInfo" class="est"></div>
+    <div class="tbl"><table id="tReal"></table></div>
+    <p class="note">Dias perdidos seguem o limiar escolhido acima. * mês em andamento ou com dias sem leitura (entre parênteses: dias com leitura).</p>
+  </div>
+
+  <div class="card">
     <h2>Composição do mês — céu, chuva e dias perdidos</h2>
     <p class="lead">Colunas: dias de sol, dias nublados sem chuva e dias de chuva (somam os dias do mês). Linha vermelha: dias perdidos. Linha azul: chuva em mm (eixo da direita). Nos cenários El Niño e 2026, as linhas tracejadas mostram o ano normal para comparação.</p>
     <div class="ctrl" style="margin-bottom:10px">
@@ -106,6 +119,20 @@ details{margin-top:8px}summary{cursor:pointer;color:var(--mute);font-size:13px}
     <h2 id="accTitle">Chuva acumulada (mm)</h2>
     <p class="lead">Faixa cinza: variação normal (80% dos anos ficam dentro). Laranja: anos de El Niño forte. Azul: 2026 observado + previsão de 16 dias (pontilhado).</p>
     <div class="chart"><canvas id="cAcc"></canvas></div>
+  </div>
+
+  <div class="card">
+    <h2>Em que horário chove</h2>
+    <p class="lead">Chance de chover em cada faixa do dia, por mês, medida de hora em hora pela estação INMET. Horário civil atual da obra. A última coluna mostra o turno inteiro (7–17h): a chance de o turno ser afetado.</p>
+    <div class="ctrl" style="margin-bottom:10px">
+      <span class="status">Chuva na faixa ≥</span>
+      <div class="seg" id="horaThr"><button data-k="1" class="on">1 mm</button><button data-k="5">5 mm (para o serviço)</button></div>
+    </div>
+    <div id="horaInfo" class="est"></div>
+    <div class="tbl"><table id="tHora" class="heat"></table></div>
+    <div class="ctrl" style="margin:16px 0 6px"><label>Hora a hora em <select id="mesHora"></select></label></div>
+    <div class="chart" style="height:260px"><canvas id="cHora"></canvas></div>
+    <p class="note">Por que não usar o modelo (ERA5) aqui: ele adianta o pico de chuva da tarde em cerca de 2–3 h e subestima a chuva da noite, o que puxaria a chuva para dentro do turno. Por isso esta seção usa só a estação.</p>
   </div>
 
   <div class="card">
@@ -139,7 +166,7 @@ const cities = [
 const ANALOGS=[1982,1997,2015,2023];
 const MES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 const CUR=2026;
-const COLORS={sun:'#f2b705',cloudy:'#9fb3c8',rainy:'#4a6a8a',lost:'#e5484d',rain:'#3b8eea'};
+const COLORS={sun:'#f2b705',cloudy:'#9fb3c8',rainy:'#4a6a8a',lost:'#e5484d',rain:'#3b8eea',inmet:'#16a34a',pluv:'#a855f7'};
 const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const $=id=>document.getElementById(id);
 const cache={};
@@ -222,6 +249,7 @@ async function render(){
   let d;try{d=await loadCity(c)}catch(e){$('status').textContent='Falha na API Open-Meteo: '+e.message;return}
   $('status').textContent=`Dados até ${d.last.split('-').reverse().join('/')}`;
   const rows=windowTable(d,s,thr,lag);
+  const [I,PV]=await Promise.all([loadInmet(c),loadPluv(c)]);
   const OND=[10,11,12],JFM=[1,2,3];
   const nO=periodNormal(d,OND,thr,lag),eO=periodByAnalog(d,OND,thr,lag);
   const nJ=periodNormal(d,JFM,thr,lag),eJ=periodByAnalog(d,JFM,thr,lag);
@@ -245,9 +273,11 @@ async function render(){
 
   Chart.defaults.color=css('--mute');Chart.defaults.borderColor=css('--line');
   Chart.defaults.font.family='system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
-  Object.values(charts).forEach(ch=>ch.destroy());
+  Object.values(charts).forEach(ch=>ch.destroy());charts={};
   drawMonthly(rows,s);
-  drawAcc(d,s);
+  drawAcc(d,s,I,PV);
+  renderReal(c,s,thr,lag,rows,I,PV);
+  renderHora(c,I);
 }
 
 function drawMonthly(rows,s){
@@ -278,7 +308,7 @@ function drawMonthly(rows,s){
       y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},title:{display:true,text:'chuva (mm)'}}}}});
 }
 
-function drawAcc(d,s){
+function drawAcc(d,s,I,PV){
   const start=`${CUR}-${pad(s)}-01`;
   $('accTitle').textContent=s===9?'Chuva acumulada — set/26 a ago/27 (mm)':'Chuva acumulada — jan a dez/26 (mm)';
   const dates=[];let t=start;while(dates.length<365){if(t.slice(5)!=='02-29')dates.push(t);t=addDays(t,1)}
@@ -299,7 +329,9 @@ function drawAcc(d,s){
     {label:'Normal (média 1991–2020)',data:med,borderColor:css('--norm'),borderWidth:2,pointRadius:0},
     ...ANALOGS.map((y,k)=>({label:s===9?`${y}-${String(y+1).slice(2)}`:String(y),data:cum(dates.map(x=>d.P.get(shift(x,y)))),borderColor:css(cols[k]),borderWidth:1.5,borderDash:[5,4],pointRadius:0})),
     {label:s===9?'2026-27 observado':'2026 observado',data:obs,borderColor:css('--obs'),borderWidth:3,pointRadius:0},
-    {label:'Previsão 16 dias',data:fc,borderColor:css('--obs'),borderWidth:3,borderDash:[2,3],pointRadius:0,spanGaps:true}
+    {label:'Previsão 16 dias',data:fc,borderColor:css('--obs'),borderWidth:3,borderDash:[2,3],pointRadius:0,spanGaps:true},
+    ...(I?[{label:`INMET ${I.estacao.codigo} realizado`,data:cumMap(dates,I.map,I.last),borderColor:COLORS.inmet,borderWidth:3,pointRadius:0}]:[]),
+    ...(PV?[{label:'Pluviômetro do canteiro',data:cumMap(dates,PV.map,PV.last,true),borderColor:COLORS.pluv,borderWidth:3,pointRadius:0}]:[])
   ]},options:{maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
     plugins:{legend:{position:'bottom',labels:{boxWidth:12,filter:i=>!['p10','p90'].includes(i.text)}},
       tooltip:{filter:it=>!['p10','p90'].includes(it.dataset.label),callbacks:{title:it=>dates[it[0].dataIndex].split('-').reverse().slice(0,2).join('/'),label:it=>it.raw==null?null:`${it.dataset.label}: ${f(it.raw)} mm`}}},
@@ -318,11 +350,110 @@ async function runAll(){
   $('allStatus').textContent=`Concluído com limiar de ${thr} mm${lag?' + dia de secagem':''}. Vermelho = mais dias perdidos que o normal.`;
 }
 
+
+// ===================== INMET (estação) e pluviômetro do canteiro =====================
+const slug=c=>c.name.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+const cacheI={},cacheP={};
+let horaThr='1';
+async function loadInmet(c){
+  const k=slug(c);if(k in cacheI)return cacheI[k];
+  try{
+    const r=await fetch(`dados/inmet/obras/${k}.json`,{cache:'no-cache'});if(!r.ok)throw 0;
+    const j=await r.json(),map=new Map();let t=j.diario.inicio,last=null;
+    j.diario.mm.forEach(v=>{if(v!=null){map.set(t,v);last=t}t=addDays(t,1)});
+    j.map=map;j.last=last;return cacheI[k]=j;
+  }catch(e){return cacheI[k]=null}
+}
+function parsePluv(txt){
+  const map=new Map();
+  for(const raw of txt.split(/\r?\n/)){
+    const ln=raw.trim();if(!ln||/^[a-z#]/i.test(ln))continue;
+    const p=ln.includes(';')?ln.split(';'):ln.split(',');if(p.length<2)continue;
+    const dt=p[0].trim(),v=parseFloat(p[1].trim().replace(',','.'));if(isNaN(v)||v<0)continue;
+    let m=dt.match(/^(\d{4})-(\d{2})-(\d{2})$/),key=null;
+    if(m)key=dt;else{m=dt.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(m)key=`${m[3]}-${pad(+m[2])}-${pad(+m[1])}`}
+    if(key)map.set(key,(map.get(key)||0)+v);
+  }
+  return map;
+}
+async function loadPluv(c){
+  const k=slug(c);if(k in cacheP)return cacheP[k];
+  try{
+    const r=await fetch(`dados/pluviometro/${k}.csv`,{cache:'no-cache'});if(!r.ok)throw 0;
+    const map=parsePluv(await r.text());if(!map.size)throw 0;
+    const keys=[...map.keys()].sort();return cacheP[k]={map,first:keys[0],last:keys[keys.length-1]};
+  }catch(e){return cacheP[k]=null}
+}
+// Acumulado de um mapa diário a partir do início da janela. zeroSemLeitura: pluviômetro (dia sem registro = 0)
+function cumMap(dates,map,last,zeroSemLeitura){
+  let s=0,seen=false;
+  return dates.map(x=>{if(!last||x>last)return null;const v=map.get(x);
+    if(v!=null){s+=v;seen=true}else if(!zeroSemLeitura&&!seen)return null;return seen||zeroSemLeitura?s:null});
+}
+function mapMonth(map,y,m,thr,lag,last,zeroSemLeitura){
+  const nd=new Date(Date.UTC(y,m,0)).getUTCDate();let rain=0,lost=0,n=0,prev=map.get(iso(new Date(Date.UTC(y,m-1,0))));
+  for(let k=1;k<=nd;k++){const t=`${y}-${pad(m)}-${pad(k)}`;if(last&&t>last)break;
+    let v=map.get(t);if(v==null&&zeroSemLeitura)v=0;
+    if(v==null){prev=null;continue}
+    n++;rain+=v;if(v>=thr||(lag&&prev!=null&&prev>=25))lost++;prev=v}
+  return n?{rain,lost,n,nd}:null;
+}
+const dBR=t=>t?t.split('-').reverse().join('/'):'—';
+function renderReal(c,s,thr,lag,rows,I,PV){
+  const k=slug(c);let info='';
+  if(I){const e=I.estacao,anos=I.clima.anos;
+    info+=`<b>Estação INMET ${e.codigo} — ${e.nome||''}/${e.uf||''}</b>, a <b>${f(e.distancia_km,1)} km</b> da obra · dados até ${dBR(I.last)} · média com ${anos.length} anos (${anos[0]}–${anos[anos.length-1]}).`;
+    if(e.distancia_km>30)info+=`<div class="alerta">Estação a ${f(e.distancia_km)} km: chuva de verão é muito localizada. Use como referência regional; para pleito de prazo, o pluviômetro do canteiro é a prova principal.${e.alternativas?.length?' Outras estações próximas: '+e.alternativas.map(a=>`${a.codigo} ${a.nome} (${f(a.distancia_km)} km)`).join(', ')+'.':''}</div>`;
+  }else info+=`<div class="alerta">Dados do INMET ainda não gerados para esta obra. Rode a automação <b>INMET — histórico anual</b> no GitHub (aba Actions).</div>`;
+  info+=PV?`<div>Pluviômetro do canteiro: leituras de ${dBR(PV.first)} a ${dBR(PV.last)}.</div>`
+          :`<div class="dim">Sem pluviômetro cadastrado. Para incluir: crie <code>dados/pluviometro/${k}.csv</code> no GitHub (modelo em <code>dados/pluviometro/MODELO.csv</code>).</div>`;
+  $('realInfo').innerHTML=info;
+  const hasI=!!I,hasP=!!PV;
+  // média da própria estação por mês (anos com o mês completo)
+  const stMean=m=>{if(!I)return null;const v=[];for(const y of I.clima.anos){const r=mapMonth(I.map,y,m,thr,lag,null);if(r&&r.n===r.nd)v.push(r)}
+    return v.length?{rain:mean(v.map(x=>x.rain)),lost:mean(v.map(x=>x.lost)),n:v.length}:null};
+  const cell=(r)=>r?`${f(r.rain)}${r.n<r.nd?`<span class="dim">*(${r.n})</span>`:''}`:'—';
+  const cellL=(r)=>r?`${f(r.lost)}${r.n<r.nd?'*':''}`:'—';
+  let hdr=`<thead><tr><th></th>${hasI?'<th class="grp" colspan="4">Estação INMET</th>':''}${hasP?'<th class="grp" colspan="2">Pluviômetro canteiro</th>':''}<th class="grp">ERA5</th></tr>
+   <tr><th>Mês</th>${hasI?'<th>Chuva média<br>da estação</th><th>Chuva<br>realizada</th><th>Dif.</th><th>Dias perdidos<br>realizado (média)</th>':''}${hasP?'<th>Chuva</th><th>Dias<br>perdidos</th>':''}<th>Chuva<br>estimada</th></tr></thead>`;
+  const today_=today();
+  const body=rows.map(r=>{const y=CUR+yOff(r.m,s);if(`${y}-${pad(r.m)}-01`>today_)return '';
+    const sm=stMean(r.m),ri=hasI?mapMonth(I.map,y,r.m,thr,lag,I.last):null,rp=hasP?mapMonth(PV.map,y,r.m,thr,lag,PV.last,true):null;
+    if(rp&&`${y}-${pad(r.m)}-01`<PV.first.slice(0,8)+'01')rp.rain=null;
+    return `<tr><td>${yLbl(r.m,s)}</td>${hasI?`<td>${f(sm?.rain)}</td><td>${cell(ri)}</td><td>${ri&&sm?delta(ri.rain,sm.rain,-1,0,'mm'):'—'}</td><td>${cellL(ri)} <span class="dim">(${f(sm?.lost,1)})</span></td>`:''}
+      ${hasP?(rp&&rp.rain!=null?`<td>${f(rp.rain)}</td><td>${f(rp.lost)}</td>`:'<td>—</td><td>—</td>'):''}<td>${r.O?f(r.O.rain)+(r.O.full?'':'*'):'—'}</td></tr>`}).join('');
+  $('tReal').innerHTML=hdr+'<tbody>'+(body||`<tr><td colspan="8" class="dim">Nenhum mês do período escolhido já começou.</td></tr>`)+'</tbody>';
+}
+function renderHora(c,I){
+  const sel=$('mesHora');
+  if(!sel.options.length){MES.forEach((m,i)=>sel.insertAdjacentHTML('beforeend',`<option value="${i}">${m}</option>`));sel.value=new Date().getMonth()}
+  if(charts.hora){charts.hora.destroy();delete charts.hora}
+  if(!I){$('horaInfo').innerHTML='<div class="alerta">Precisa dos dados horários do INMET: rode a automação <b>INMET — histórico anual</b> no GitHub.</div>';$('tHora').innerHTML='';return}
+  const J=I.clima.janelas,anos=I.clima.anos,key=horaThr==='5'?'chuva5':'chuva1';
+  $('horaInfo').innerHTML=`Estação ${I.estacao.codigo} (${f(I.estacao.distancia_km,1)} km) · ${anos.length} anos (${anos[0]}–${anos[anos.length-1]}) · horário UTC${I.utc}.`;
+  const iT=J.nomes.length-1; // última janela = turno 7–17h
+  const cellC=(p)=>{if(p==null)return '<td class="dim">—</td>';const a=Math.min(1,p/ (horaThr==='5'?0.35:0.6));
+    return `<td style="background:rgba(59,142,234,${(a*0.85).toFixed(2)});color:${a>0.55?'#fff':'inherit'}">${Math.round(p*100)}%</td>`};
+  let html=`<thead><tr><th>Mês</th>${J.nomes.slice(0,iT).map(n=>`<th>${n}</th>`).join('')}<th>${J.nomes[iT]}</th></tr></thead><tbody>`;
+  for(let m=0;m<12;m++){const p=J.nomes.map((_,k)=>J.n[m][k]?J[key][m][k]/J.n[m][k]:null);
+    html+=`<tr><td>${MES[m]}</td>${p.slice(0,iT).map(cellC).join('')}${cellC(p[iT])}</tr>`}
+  $('tHora').innerHTML=html+'</tbody>';
+  const m=+sel.value,H=I.clima.horas,freq=H.n[m].map((n,h)=>n?H.freq02[m][h]/n*100:null),mmH=H.n[m].map((n,h)=>n?H.mm[m][h]/n*30.4:null);
+  charts.hora=new Chart($('cHora'),{type:'bar',data:{labels:[...Array(24)].map((_,h)=>`${h}h`),datasets:[
+    {label:'% das horas com chuva (≥ 0,2 mm)',data:freq,backgroundColor:freq.map((_,h)=>h>=7&&h<17?COLORS.rain:'rgba(59,142,234,.35)'),borderRadius:3}]},
+    options:{maintainAspectRatio:false,animation:false,plugins:{legend:{display:false},
+      tooltip:{callbacks:{title:it=>`${it[0].dataIndex}h–${it[0].dataIndex+1}h`,label:it=>it.raw==null?null:`Choveu em ${f(it.raw,1)}% dessas horas · média ${f(mmH[it.dataIndex],1)} mm/mês nessa hora`}}},
+      scales:{x:{grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'% das horas com chuva'}}}}});
+}
+
 cities.forEach((c,i)=>$('city').insertAdjacentHTML('beforeend',`<option value="${i}">${c.name} / ${c.state}</option>`));
 ['city','thr','lag','win'].forEach(id=>$(id).addEventListener('change',render));
 $('scen').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;scen=b.dataset.k;
   [...$('scen').children].forEach(x=>x.classList.toggle('on',x===b));render()});
 $('runAll').addEventListener('click',runAll);
+$('horaThr').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;horaThr=b.dataset.k;
+  [...$('horaThr').children].forEach(x=>x.classList.toggle('on',x===b));render()});
+$('mesHora').addEventListener('change',render);
 // Abre direto na obra vinda do painel (?city=Nome)
 try{const q=new URLSearchParams(location.search).get('city');const i=cities.findIndex(c=>c.name===q);if(i>=0)$('city').value=i}catch(e){}
 $('city').addEventListener('change',()=>{try{history.replaceState(null,'','?city='+encodeURIComponent(cities[$('city').value].name))}catch(e){}});
