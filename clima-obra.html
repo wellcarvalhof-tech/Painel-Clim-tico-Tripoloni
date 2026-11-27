@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Clima × Obra — El Niño 2026-27</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="js/previsao-horario.js"></script>
 <style>
 :root{
   --bg:#f6f7f9;--card:#fff;--ink:#16202b;--mute:#5d6b7a;--line:#dfe4ea;
@@ -49,7 +50,7 @@ details{margin-top:8px}summary{cursor:pointer;color:var(--mute);font-size:13px}
 .est{font-size:13.5px;line-height:1.55;margin:0 0 10px}.est b{font-weight:650}
 .alerta{background:var(--warn);border-radius:7px;padding:8px 10px;font-size:13px;margin:8px 0}
 .heat td{text-align:center;min-width:64px;font-weight:600}.heat td:first-child{text-align:left;font-weight:400}
-.heat th{text-align:center}.fc td{min-width:78px;line-height:1.25}.fc td small{display:block;font-weight:400;font-size:11px;opacity:.85}.fc tr.longe td:not(:first-child){opacity:.5}.fc tr.hist td{font-weight:400;font-style:italic;border-bottom:2px solid var(--line)}.fc td.passou{opacity:.3}.heat td:last-child,.heat th:last-child{border-left:2px solid var(--line)}.heat tr.turno td{border-top:2px solid var(--line)}
+.heat th{text-align:center}.heat td:last-child,.heat th:last-child{border-left:2px solid var(--line)}.heat tr.turno td{border-top:2px solid var(--line)}
 code{font-size:12.5px;background:var(--band);padding:1px 5px;border-radius:4px}
 .topbar{background:#0d2b54;color:#fff;padding:12px 16px;display:flex;gap:14px;align-items:center;font-size:14px;position:sticky;top:0;z-index:10}
 .topbar a{color:#fff;text-decoration:none;font-weight:600}.topbar a:hover{text-decoration:underline}
@@ -89,10 +90,7 @@ code{font-size:12.5px;background:var(--band);padding:1px 5px;border-radius:4px}
 
   <div class="card">
     <h2>Próximos 7 dias — chuva por faixa de horário</h2>
-    <p class="lead">Cada célula mostra quantos dos 3 modelos (ECMWF, GFS, ICON) preveem chuva ≥ 1 mm naquela faixa. Embaixo: a maior chance de chuva hora a hora no conjunto de simulações e a chuva média prevista. Passe o mouse para ver cada modelo.</p>
-    <div id="fcInfo" class="est"></div>
-    <div class="tbl"><table id="tFc" class="heat fc"></table></div>
-    <p class="note"><b>Como ler:</b> 3/3 = os três modelos concordam, risco alto; 1/3 = possível pancada isolada. Até o 3º dia o horário ajuda a programar o serviço; do 4º em diante (células apagadas) use só para saber se o dia tem risco. Os modelos de previsão tendem a <b>adiantar a chuva da tarde</b> em 2–3 h: se aparecer chuva às 13–16h, compare com a linha "Histórico" da estação, que mostra quando ela costuma cair de fato.</p>
+    <div id="fcHora"></div>
   </div>
 
   <div class="card">
@@ -253,6 +251,8 @@ const yLbl=(m,s)=>`${MES[m-1]}${s>1?'/'+String(CUR+yOff(m,s)).slice(2):''}`;
 
 async function render(){
   const c=cities[$('city').value],thr=+$('thr').value,lag=$('lag').checked,s=winStart();
+  // previsão por horário não depende do histórico: desenha logo e só quando muda a obra
+  if(window.PrevisaoHorario&&render.fcObra!==c.name){render.fcObra=c.name;PrevisaoHorario.render($('fcHora'),{nome:c.name,lat:c.lat,lon:c.lon,tz:c.tz})}
   $('status').textContent='Carregando dados históricos…';
   let d;try{d=await loadCity(c)}catch(e){$('status').textContent='Falha na API Open-Meteo: '+e.message;return}
   $('status').textContent=`Dados até ${d.last.split('-').reverse().join('/')}`;
@@ -286,7 +286,6 @@ async function render(){
   drawAcc(d,s,I,PV);
   renderReal(c,s,thr,lag,rows,I,PV);
   renderHora(c,I);
-  renderFc(c,I);
 }
 
 function drawMonthly(rows,s){
@@ -467,58 +466,6 @@ function renderHora(c,I){
     options:{maintainAspectRatio:false,animation:false,plugins:{legend:{display:false},
       tooltip:{callbacks:{title:it=>`${it[0].dataIndex}h–${it[0].dataIndex+1}h`,label:it=>it.raw==null?null:`Choveu em ${f(it.raw,1)}% dessas horas · média ${f(mmH[it.dataIndex],1)} mm/mês nessa hora`}}},
       scales:{x:{grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'% das horas com chuva'}}}}});
-}
-
-// ===================== Previsão por faixa de horário (próximos 7 dias) =====================
-const FC_MODELS=[['ecmwf_ifs','ECMWF'],['gfs_seamless','GFS'],['icon_seamless','ICON']];
-const JAN_PADRAO={nomes:['Madrugada 0–7h','7–10h','10–13h','13–16h','16–19h','Noite 19–24h','Turno 7–17h'],inicio_fim:[[0,7],[7,10],[10,13],[13,16],[16,19],[19,24],[7,17]]};
-const cacheFc={};
-async function loadFcH(c){
-  const k=c.name+'|'+new Date().toISOString().slice(0,13);if(cacheFc[k])return cacheFc[k];
-  const base=`https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}&forecast_days=7&timezone=${encodeURIComponent(c.tz)}`;
-  const [r1,r2]=await Promise.allSettled([getJSON(`${base}&hourly=precipitation&models=${FC_MODELS.map(m=>m[0]).join(',')}`),getJSON(`${base}&hourly=precipitation_probability`)]);
-  // chave "data|hora de início" -> valor (o Open-Meteo dá a chuva da hora ANTERIOR ao horário)
-  const porInicio=(H,key)=>{const m=new Map();if(!H||!H[key])return m;H.time.forEach((t,i)=>{const v=H[key][i];if(v==null)return;
-    const d=new Date(t+':00Z');d.setUTCHours(d.getUTCHours()-1);m.set(d.toISOString().slice(0,10)+'|'+d.getUTCHours(),v)});return m};
-  const out={models:{},prob:new Map(),ok:false};
-  if(r1.status==='fulfilled'){const H=r1.value.hourly;
-    FC_MODELS.forEach(([id])=>{const key=H[`precipitation_${id}`]?`precipitation_${id}`:(FC_MODELS.length===1?'precipitation':null);if(key){out.models[id]=porInicio(H,key);out.ok=true}})}
-  if(r2.status==='fulfilled'){out.prob=porInicio(r2.value.hourly,'precipitation_probability');out.ok=true}
-  return cacheFc[k]=out;
-}
-function agoraLocal(tz){
-  const p=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).map(x=>[x.type,x.value]));
-  return {dia:`${p.year}-${p.month}-${p.day}`,hora:+p.hour};
-}
-const DSEM=['dom','seg','ter','qua','qui','sex','sáb'];
-async function renderFc(c,I){
-  const J=I?I.clima.janelas:JAN_PADRAO;
-  let F;try{F=await loadFcH(c)}catch(e){F=null}
-  if(!F||!F.ok){$('fcInfo').innerHTML='<div class="alerta">Não foi possível carregar a previsão agora.</div>';$('tFc').innerHTML='';return}
-  const now=agoraLocal(c.tz),mes=+now.dia.slice(5,7)-1,iT=J.nomes.length-1;
-  const mods=FC_MODELS.filter(([id])=>F.models[id]);
-  let html=`<thead><tr><th>Dia</th>${J.nomes.map(n=>`<th>${n}</th>`).join('')}</tr></thead><tbody>`;
-  if(I){const p=J.nomes.map((_,k)=>J.n[mes][k]?J.chuva1[mes][k]/J.n[mes][k]:null);
-    html+=`<tr class="hist"><td>Histórico de ${MES[mes]}<small class="dim">chance de ≥ 1 mm</small></td>${p.map(v=>`<td>${v==null?'—':Math.round(v*100)+'%'}</td>`).join('')}</tr>`;
-    const pk=p.slice(0,iT).reduce((b,v,k)=>v!=null&&(b<0||v>p[b])?k:b,-1);
-    $('fcInfo').innerHTML=pk>=0&&p[pk]>0?`No histórico da estação ${I.estacao.codigo}, em ${MES[mes]} a faixa com mais chuva é <b>${J.nomes[pk]}</b> (${Math.round(p[pk]*100)}% dos dias).`:'';
-  }else $('fcInfo').innerHTML='<span class="dim">Linha "Histórico" aparece quando os dados do INMET estiverem carregados.</span>';
-  for(let d=0;d<7;d++){
-    const dia=addDays(now.dia,d),dw=new Date(dia+'T12:00:00Z').getUTCDay();
-    html+=`<tr class="${d>=3?'longe':''}"><td>${d===0?'Hoje':d===1?'Amanhã':DSEM[dw]} ${dia.slice(8)}/${dia.slice(5,7)}</td>`;
-    J.inicio_fim.forEach(([a,b])=>{
-      const hrs=[...Array(b-a)].map((_,i)=>a+i);
-      const somas=mods.map(([id,nm])=>{const v=hrs.map(hh=>F.models[id].get(dia+'|'+hh));return v.some(x=>x==null)?null:[nm,v.reduce((x,y)=>x+y,0)]}).filter(Boolean);
-      const k=somas.filter(x=>x[1]>=1).length,n=somas.length,mm=n?somas.reduce((x,y)=>x+y[1],0)/n:null;
-      const pr=hrs.map(hh=>F.prob.get(dia+'|'+hh)).filter(x=>x!=null),pmax=pr.length?Math.max(...pr):null;
-      const passou=d===0&&b<=now.hora;
-      if(!n&&pmax==null){html+='<td class="dim">—</td>';return}
-      const a_=n?k/n:0;
-      html+=`<td class="${passou?'passou':''}" title="${somas.map(x=>`${x[0]}: ${f(x[1],1)} mm`).join(' · ')}" style="background:rgba(59,142,234,${(a_*0.85).toFixed(2)});color:${a_>0.6?'#fff':'inherit'}">${n?`${k}/${n}`:'—'}<small>${pmax!=null?pmax+'%':''}${mm!=null?` · ${f(mm,mm<10?1:0)} mm`:''}</small></td>`;
-    });
-    html+='</tr>';
-  }
-  $('tFc').innerHTML=html+'</tbody>';
 }
 
 cities.forEach((c,i)=>$('city').insertAdjacentHTML('beforeend',`<option value="${i}">${c.name} / ${c.state}</option>`));
