@@ -49,7 +49,7 @@ details{margin-top:8px}summary{cursor:pointer;color:var(--mute);font-size:13px}
 .est{font-size:13.5px;line-height:1.55;margin:0 0 10px}.est b{font-weight:650}
 .alerta{background:var(--warn);border-radius:7px;padding:8px 10px;font-size:13px;margin:8px 0}
 .heat td{text-align:center;min-width:64px;font-weight:600}.heat td:first-child{text-align:left;font-weight:400}
-.heat th{text-align:center}.heat td:last-child,.heat th:last-child{border-left:2px solid var(--line)}.heat tr.turno td{border-top:2px solid var(--line)}
+.heat th{text-align:center}.fc td{min-width:78px;line-height:1.25}.fc td small{display:block;font-weight:400;font-size:11px;opacity:.85}.fc tr.longe td:not(:first-child){opacity:.5}.fc tr.hist td{font-weight:400;font-style:italic;border-bottom:2px solid var(--line)}.fc td.passou{opacity:.3}.heat td:last-child,.heat th:last-child{border-left:2px solid var(--line)}.heat tr.turno td{border-top:2px solid var(--line)}
 code{font-size:12.5px;background:var(--band);padding:1px 5px;border-radius:4px}
 .topbar{background:#0d2b54;color:#fff;padding:12px 16px;display:flex;gap:14px;align-items:center;font-size:14px;position:sticky;top:0;z-index:10}
 .topbar a{color:#fff;text-decoration:none;font-weight:600}.topbar a:hover{text-decoration:underline}
@@ -85,6 +85,14 @@ code{font-size:12.5px;background:var(--band);padding:1px 5px;border-radius:4px}
       <span class="status" id="status"></span>
     </div>
     <div class="kpis" id="kpis"></div>
+  </div>
+
+  <div class="card">
+    <h2>Próximos 7 dias — chuva por faixa de horário</h2>
+    <p class="lead">Cada célula mostra quantos dos 3 modelos (ECMWF, GFS, ICON) preveem chuva ≥ 1 mm naquela faixa. Embaixo: a maior chance de chuva hora a hora no conjunto de simulações e a chuva média prevista. Passe o mouse para ver cada modelo.</p>
+    <div id="fcInfo" class="est"></div>
+    <div class="tbl"><table id="tFc" class="heat fc"></table></div>
+    <p class="note"><b>Como ler:</b> 3/3 = os três modelos concordam, risco alto; 1/3 = possível pancada isolada. Até o 3º dia o horário ajuda a programar o serviço; do 4º em diante (células apagadas) use só para saber se o dia tem risco. Os modelos de previsão tendem a <b>adiantar a chuva da tarde</b> em 2–3 h: se aparecer chuva às 13–16h, compare com a linha "Histórico" da estação, que mostra quando ela costuma cair de fato.</p>
   </div>
 
   <div class="card">
@@ -278,6 +286,7 @@ async function render(){
   drawAcc(d,s,I,PV);
   renderReal(c,s,thr,lag,rows,I,PV);
   renderHora(c,I);
+  renderFc(c,I);
 }
 
 function drawMonthly(rows,s){
@@ -330,7 +339,7 @@ function drawAcc(d,s,I,PV){
     ...ANALOGS.map((y,k)=>({label:s===9?`${y}-${String(y+1).slice(2)}`:String(y),data:cum(dates.map(x=>d.P.get(shift(x,y)))),borderColor:css(cols[k]),borderWidth:1.5,borderDash:[5,4],pointRadius:0})),
     {label:s===9?'2026-27 observado':'2026 observado',data:obs,borderColor:css('--obs'),borderWidth:3,pointRadius:0},
     {label:'Previsão 16 dias',data:fc,borderColor:css('--obs'),borderWidth:3,borderDash:[2,3],pointRadius:0,spanGaps:true},
-    ...(I?[{label:`INMET ${I.estacao.codigo} realizado`,data:cumMap(dates,I.map,I.last),borderColor:COLORS.inmet,borderWidth:3,pointRadius:0}]:[]),
+    ...(I?[{label:`INMET realizado (${(()=>{const c=coberturaJanela(I,dates);return c?Math.round(100*(c.n-c.sem)/c.n)+'% dos dias com leitura':'sem dados'})()})`,data:cumMap(dates,I.map,I.last),borderColor:COLORS.inmet,borderWidth:3,pointRadius:0,spanGaps:false}]:[]),
     ...(PV?[{label:'Pluviômetro do canteiro',data:cumMap(dates,PV.map,PV.last,true),borderColor:COLORS.pluv,borderWidth:3,pointRadius:0}]:[])
   ]},options:{maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
     plugins:{legend:{position:'bottom',labels:{boxWidth:12,filter:i=>!['p10','p90'].includes(i.text)}},
@@ -359,9 +368,9 @@ async function loadInmet(c){
   const k=slug(c);if(k in cacheI)return cacheI[k];
   try{
     const r=await fetch(`dados/inmet/obras/${k}.json`,{cache:'no-cache'});if(!r.ok)throw 0;
-    const j=await r.json(),map=new Map();let t=j.diario.inicio,last=null;
-    j.diario.mm.forEach(v=>{if(v!=null){map.set(t,v);last=t}t=addDays(t,1)});
-    j.map=map;j.last=last;return cacheI[k]=j;
+    const j=await r.json(),map=new Map(),src=new Map();let t=j.diario.inicio,last=null;const fo=j.diario.fonte||[];
+    j.diario.mm.forEach((v,i)=>{if(v!=null){map.set(t,v);src.set(t,fo[i]??0);last=t}t=addDays(t,1)});
+    j.map=map;j.src=src;j.last=last;return cacheI[k]=j;
   }catch(e){return cacheI[k]=null}
 }
 function parsePluv(txt){
@@ -386,9 +395,16 @@ async function loadPluv(c){
 }
 // Acumulado de um mapa diário a partir do início da janela. zeroSemLeitura: pluviômetro (dia sem registro = 0)
 function cumMap(dates,map,last,zeroSemLeitura){
-  let s=0,seen=false;
-  return dates.map(x=>{if(!last||x>last)return null;const v=map.get(x);
-    if(v!=null){s+=v;seen=true}else if(!zeroSemLeitura&&!seen)return null;return seen||zeroSemLeitura?s:null});
+  // dia sem leitura: a linha some (falha visível) e a soma continua com o que foi medido
+  let s=0;
+  return dates.map(x=>{if(!last||x>last)return null;let v=map.get(x);if(v==null&&zeroSemLeitura)v=0;
+    if(v==null)return null;s+=v;return s});
+}
+function coberturaJanela(I,dates){
+  const ate=dates.filter(x=>x<=I.last);if(!ate.length)return null;
+  const cont=(I.fontes||[{}]).map(()=>0);let sem=0;
+  ate.forEach(x=>{const s=I.src.get(x);if(s==null)sem++;else cont[s]=(cont[s]||0)+1});
+  return {n:ate.length,sem,cont};
 }
 function mapMonth(map,y,m,thr,lag,last,zeroSemLeitura){
   const nd=new Date(Date.UTC(y,m,0)).getUTCDate();let rain=0,lost=0,n=0,prev=map.get(iso(new Date(Date.UTC(y,m-1,0))));
@@ -402,8 +418,15 @@ const dBR=t=>t?t.split('-').reverse().join('/'):'—';
 function renderReal(c,s,thr,lag,rows,I,PV){
   const k=slug(c);let info='';
   if(I){const e=I.estacao,anos=I.clima.anos;
-    info+=`<b>Estação INMET ${e.codigo} — ${e.nome||''}/${e.uf||''}</b>, a <b>${f(e.distancia_km,1)} km</b> da obra · dados até ${dBR(I.last)} · média com ${anos.length} anos (${anos[0]}–${anos[anos.length-1]}).`;
-    if(e.distancia_km>30)info+=`<div class="alerta">Estação a ${f(e.distancia_km)} km: chuva de verão é muito localizada. Use como referência regional; para pleito de prazo, o pluviômetro do canteiro é a prova principal.${e.alternativas?.length?' Outras estações próximas: '+e.alternativas.map(a=>`${a.codigo} ${a.nome} (${f(a.distancia_km)} km)`).join(', ')+'.':''}</div>`;
+    info+=`<b>Estação INMET ${e.codigo} — ${e.nome||''}/${e.uf||''}</b>, a <b>${f(e.distancia_km,1)} km</b> da obra · dados até ${dBR(I.last)} · média com ${anos.length} anos (${anos[0]}–${anos[anos.length-1]})${e.cobertura_recente!=null?` · pluviômetro da estação com leitura em ${f(e.cobertura_recente*100)}% das horas nos últimos 6 meses`:''}.${e.motivo?`<div class="dim">Critério: ${e.motivo}.</div>`:''}`;
+    if(e.cobertura_recente!=null&&e.cobertura_recente<0.7)info+=`<div class="alerta">A estação teve muitas horas sem leitura de chuva nos últimos meses: o realizado pode estar subestimado.</div>`;
+    if(e.distancia_km>30)info+=`<div class="alerta">Estação a ${f(e.distancia_km)} km: chuva de verão é muito localizada. Use como referência regional; para pleito de prazo, o pluviômetro do canteiro é a prova principal.${e.alternativas?.length?' Outras estações próximas: '+e.alternativas.map(a=>`${a.codigo} ${a.nome} (${f(a.distancia_km)} km${a.cobertura_recente!=null?`, leitura ${f(a.cobertura_recente*100)}%`:''})`).join(', ')+'.':''}</div>`;
+    const ds=[];let t0=`${CUR}-${pad(s)}-01`;while(t0<=today()&&ds.length<366){ds.push(t0);t0=addDays(t0,1)}
+    const cj=coberturaJanela(I,ds);
+    if(cj&&I.fontes){const partes=I.fontes.map((fo,k)=>cj.cont[k]?`${Math.round(100*cj.cont[k]/cj.n)}% ${fo.codigo} ${fo.nome||''}${k?` (reserva, ${f(fo.distancia_km)} km)`:''}`:null).filter(Boolean);
+      if(cj.sem)partes.push(`${Math.round(100*cj.sem/cj.n)}% sem leitura em nenhuma estação`);
+      info+=`<div>Dias do período até hoje: ${partes.join(' · ')}.</div>`;
+      if(cj.sem/cj.n>0.2)info+=`<div class="alerta">Mais de 20% dos dias sem leitura nas estações próximas: o acumulado do INMET fica abaixo do real. Use o pluviômetro do canteiro para esses dias.</div>`}
   }else info+=`<div class="alerta">Dados do INMET ainda não gerados para esta obra. Rode a automação <b>INMET — histórico anual</b> no GitHub (aba Actions).</div>`;
   info+=PV?`<div>Pluviômetro do canteiro: leituras de ${dBR(PV.first)} a ${dBR(PV.last)}.</div>`
           :`<div class="dim">Sem pluviômetro cadastrado. Para incluir: crie <code>dados/pluviometro/${k}.csv</code> no GitHub (modelo em <code>dados/pluviometro/MODELO.csv</code>).</div>`;
@@ -444,6 +467,58 @@ function renderHora(c,I){
     options:{maintainAspectRatio:false,animation:false,plugins:{legend:{display:false},
       tooltip:{callbacks:{title:it=>`${it[0].dataIndex}h–${it[0].dataIndex+1}h`,label:it=>it.raw==null?null:`Choveu em ${f(it.raw,1)}% dessas horas · média ${f(mmH[it.dataIndex],1)} mm/mês nessa hora`}}},
       scales:{x:{grid:{display:false}},y:{beginAtZero:true,title:{display:true,text:'% das horas com chuva'}}}}});
+}
+
+// ===================== Previsão por faixa de horário (próximos 7 dias) =====================
+const FC_MODELS=[['ecmwf_ifs','ECMWF'],['gfs_seamless','GFS'],['icon_seamless','ICON']];
+const JAN_PADRAO={nomes:['Madrugada 0–7h','7–10h','10–13h','13–16h','16–19h','Noite 19–24h','Turno 7–17h'],inicio_fim:[[0,7],[7,10],[10,13],[13,16],[16,19],[19,24],[7,17]]};
+const cacheFc={};
+async function loadFcH(c){
+  const k=c.name+'|'+new Date().toISOString().slice(0,13);if(cacheFc[k])return cacheFc[k];
+  const base=`https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}&forecast_days=7&timezone=${encodeURIComponent(c.tz)}`;
+  const [r1,r2]=await Promise.allSettled([getJSON(`${base}&hourly=precipitation&models=${FC_MODELS.map(m=>m[0]).join(',')}`),getJSON(`${base}&hourly=precipitation_probability`)]);
+  // chave "data|hora de início" -> valor (o Open-Meteo dá a chuva da hora ANTERIOR ao horário)
+  const porInicio=(H,key)=>{const m=new Map();if(!H||!H[key])return m;H.time.forEach((t,i)=>{const v=H[key][i];if(v==null)return;
+    const d=new Date(t+':00Z');d.setUTCHours(d.getUTCHours()-1);m.set(d.toISOString().slice(0,10)+'|'+d.getUTCHours(),v)});return m};
+  const out={models:{},prob:new Map(),ok:false};
+  if(r1.status==='fulfilled'){const H=r1.value.hourly;
+    FC_MODELS.forEach(([id])=>{const key=H[`precipitation_${id}`]?`precipitation_${id}`:(FC_MODELS.length===1?'precipitation':null);if(key){out.models[id]=porInicio(H,key);out.ok=true}})}
+  if(r2.status==='fulfilled'){out.prob=porInicio(r2.value.hourly,'precipitation_probability');out.ok=true}
+  return cacheFc[k]=out;
+}
+function agoraLocal(tz){
+  const p=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).map(x=>[x.type,x.value]));
+  return {dia:`${p.year}-${p.month}-${p.day}`,hora:+p.hour};
+}
+const DSEM=['dom','seg','ter','qua','qui','sex','sáb'];
+async function renderFc(c,I){
+  const J=I?I.clima.janelas:JAN_PADRAO;
+  let F;try{F=await loadFcH(c)}catch(e){F=null}
+  if(!F||!F.ok){$('fcInfo').innerHTML='<div class="alerta">Não foi possível carregar a previsão agora.</div>';$('tFc').innerHTML='';return}
+  const now=agoraLocal(c.tz),mes=+now.dia.slice(5,7)-1,iT=J.nomes.length-1;
+  const mods=FC_MODELS.filter(([id])=>F.models[id]);
+  let html=`<thead><tr><th>Dia</th>${J.nomes.map(n=>`<th>${n}</th>`).join('')}</tr></thead><tbody>`;
+  if(I){const p=J.nomes.map((_,k)=>J.n[mes][k]?J.chuva1[mes][k]/J.n[mes][k]:null);
+    html+=`<tr class="hist"><td>Histórico de ${MES[mes]}<small class="dim">chance de ≥ 1 mm</small></td>${p.map(v=>`<td>${v==null?'—':Math.round(v*100)+'%'}</td>`).join('')}</tr>`;
+    const pk=p.slice(0,iT).reduce((b,v,k)=>v!=null&&(b<0||v>p[b])?k:b,-1);
+    $('fcInfo').innerHTML=pk>=0&&p[pk]>0?`No histórico da estação ${I.estacao.codigo}, em ${MES[mes]} a faixa com mais chuva é <b>${J.nomes[pk]}</b> (${Math.round(p[pk]*100)}% dos dias).`:'';
+  }else $('fcInfo').innerHTML='<span class="dim">Linha "Histórico" aparece quando os dados do INMET estiverem carregados.</span>';
+  for(let d=0;d<7;d++){
+    const dia=addDays(now.dia,d),dw=new Date(dia+'T12:00:00Z').getUTCDay();
+    html+=`<tr class="${d>=3?'longe':''}"><td>${d===0?'Hoje':d===1?'Amanhã':DSEM[dw]} ${dia.slice(8)}/${dia.slice(5,7)}</td>`;
+    J.inicio_fim.forEach(([a,b])=>{
+      const hrs=[...Array(b-a)].map((_,i)=>a+i);
+      const somas=mods.map(([id,nm])=>{const v=hrs.map(hh=>F.models[id].get(dia+'|'+hh));return v.some(x=>x==null)?null:[nm,v.reduce((x,y)=>x+y,0)]}).filter(Boolean);
+      const k=somas.filter(x=>x[1]>=1).length,n=somas.length,mm=n?somas.reduce((x,y)=>x+y[1],0)/n:null;
+      const pr=hrs.map(hh=>F.prob.get(dia+'|'+hh)).filter(x=>x!=null),pmax=pr.length?Math.max(...pr):null;
+      const passou=d===0&&b<=now.hora;
+      if(!n&&pmax==null){html+='<td class="dim">—</td>';return}
+      const a_=n?k/n:0;
+      html+=`<td class="${passou?'passou':''}" title="${somas.map(x=>`${x[0]}: ${f(x[1],1)} mm`).join(' · ')}" style="background:rgba(59,142,234,${(a_*0.85).toFixed(2)});color:${a_>0.6?'#fff':'inherit'}">${n?`${k}/${n}`:'—'}<small>${pmax!=null?pmax+'%':''}${mm!=null?` · ${f(mm,mm<10?1:0)} mm`:''}</small></td>`;
+    });
+    html+='</tr>';
+  }
+  $('tFc').innerHTML=html+'</tbody>';
 }
 
 cities.forEach((c,i)=>$('city').insertAdjacentHTML('beforeend',`<option value="${i}">${c.name} / ${c.state}</option>`));
