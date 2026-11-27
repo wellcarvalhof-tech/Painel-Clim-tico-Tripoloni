@@ -207,8 +207,6 @@ footer{text-align:center;font-size:11px;color:var(--text3);padding:16px 0 24px;}
   <div class="section-label">🌧 previsão 15 dias — análise multi-modelo</div>
   <div id="fc15Area"><div class="loading-box"><div class="spinner"></div><p>Carregando modelos ECMWF, GFS e ICON…</p></div></div>
 
-  <div class="section-label">🕐 chuva por faixa de horário — próximos 7 dias</div>
-  <div class="card" id="fcHoraArea"></div>
 
   <div class="section-label">dados atuais — ano de <span id="yrLabel">2026</span></div>
   <div id="liveArea"><div class="loading-box"><div class="spinner"></div><p>Buscando dados em tempo real…</p></div></div>
@@ -975,6 +973,11 @@ function alertLevel(analysis){
   return {cls:'alert-green', icon:'🟢', msg:`Período predominantemente seco: ${analysis.rainDays} dias de chuva previstos (${analysis.totalPrec} mm total estimado).`};
 }
 
+// tabela de chuva por faixa de horário (js/previsao-horario.js), dentro do bloco da previsão
+function renderHoraFc(city){
+  const el=document.getElementById('fcHoraArea');
+  if(el&&window.PrevisaoHorario) PrevisaoHorario.render(el,{nome:city.name,lat:city.lat,lon:city.lon,tz:city.tz});
+}
 async function renderFC15(city){
   const el = document.getElementById('fc15Area');
   el.innerHTML = `<div class="loading-box"><div class="spinner"></div><p>Consultando modelos ECMWF, GFS e ICON…</p></div>`;
@@ -1065,6 +1068,10 @@ async function renderFC15(city){
         ${calHtml}
         <div class="fcast-note" style="margin-top:8px;">% = probabilidade de chuva · mm = precipitação média dos 3 modelos · barra inferior = intensidade relativa</div>
       </div>
+      <div class="card" style="margin-bottom:12px;">
+        <div class="card-title">Chuva por faixa de horário — próximos 7 dias</div>
+        <div id="fcHoraArea"></div>
+      </div>
       <div class="two-col" style="margin-bottom:12px;">
         <div class="card">
           <div class="card-title">Precipitação por modelo (mm/dia)</div>
@@ -1097,6 +1104,7 @@ async function renderFC15(city){
         </div>
       </div>
     `;
+    renderHoraFc(city);
 
     // renderizar gráficos após inserir no DOM
     requestAnimationFrame(()=>{
@@ -1143,7 +1151,13 @@ async function renderFC15(city){
     });
 
   } catch(e){
-    el.innerHTML = `<div class="error-box">⚠ Erro ao buscar modelos: ${e.message}</div>`;
+    el.innerHTML = `<div class="error-box">⚠ Erro ao buscar modelos: ${e.message}</div>
+      <div class="card" style="margin-top:12px;">
+        <div class="card-title">Chuva por faixa de horário — próximos 7 dias</div>
+        <div id="fcHoraArea"></div>
+      </div>
+`;
+    renderHoraFc(city);
   }
 }
 
@@ -1164,7 +1178,6 @@ async function selectCity(idx){
   document.getElementById('cmpArea').innerHTML  = spinner;
   document.getElementById('rainArea').innerHTML = spinner;
   renderFC15(city);
-  if(window.PrevisaoHorario) PrevisaoHorario.render(document.getElementById('fcHoraArea'),{nome:city.name,lat:city.lat,lon:city.lon,tz:city.tz});
 
   try {
     const [archiveDaily, forecastDaily] = await Promise.all([
